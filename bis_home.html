@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIS AI — Procurement Standards Assistant | SIH 2026</title>
+  <meta name="description" content="AI-Powered BIS Procurement Standards Recommendation & Verification Assistant. Identify applicable Indian Standards for any procurement requirement." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       DESIGN SYSTEM
+    ============================================================ */
+    :root {
+      --brand-blue: #1a3a6b;
+      --brand-blue-mid: #2563eb;
+      --brand-blue-light: #3b82f6;
+      --brand-accent: #f59e0b;
+      --brand-accent-dark: #d97706;
+      --bg-dark: #0a0f1e;
+      --bg-card: #0f172a;
+      --bg-card-light: #1e293b;
+      --bg-card-border: rgba(148,163,184,0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.1);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245,158,11,0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.1);
+      --blue-glow: rgba(37,99,235,0.15);
+      --border-radius: 12px;
+      --border-radius-lg: 16px;
+      --border-radius-xl: 20px;
+      --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(37,99,235,0.15);
+      --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================================
+       ANIMATED BACKGROUND
+    ============================================================ */
+    .bg-mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(37,99,235,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 80%, rgba(245,158,11,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(26,58,107,0.05) 0%, transparent 70%);
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--bg-card-border);
+      padding: 0 2rem;
+    }
+    .header-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo-emblem {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand-blue-mid), var(--brand-blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; box-shadow: 0 0 16px rgba(37,99,235,0.4);
+    }
+    .logo-text { display: flex; flex-direction: column; }
+    .logo-main { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+    .logo-sub { font-size: 10px; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.05em; }
+    .header-badge {
+      background: linear-gradient(90deg, var(--brand-accent), var(--brand-accent-dark));
+      color: #000; font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px; letter-spacing: 0.08em;
+    }
+    .header-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--text-secondary);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ============================================================
+       MAIN LAYOUT
+    ============================================================ */
+    .main-wrap {
+      position: relative; z-index: 1;
+      max-width: 1400px; margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* ============================================================
+       HERO + INPUT PANEL
+    ============================================================ */
+    .hero {
+      text-align: center; padding: 3rem 1rem 2rem;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.3);
+      padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      color: var(--brand-blue-light); letter-spacing: 0.05em; margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800;
+      line-height: 1.15; margin-bottom: 1rem;
+      background: linear-gradient(135deg, #f1f5f9 30%, var(--brand-blue-light) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--text-secondary); font-size: 1rem; max-width: 600px;
+      margin: 0 auto 2.5rem; line-height: 1.7;
+    }
+
+    /* ============================================================
+       INPUT CARD
+    ============================================================ */
+    .input-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius-xl);
+      padding: 2rem;
+      box-shadow: var(--shadow-card);
+      max-width: 900px; margin: 0 auto 3rem;
+    }
+
+    .input-type-row {
+      display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .type-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: 10px; border: 1px solid var(--bg-card-border);
+      background: transparent; color: var(--text-secondary);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: var(--transition); font-family: inherit;
+    }
+    .type-btn:hover { border-color: var(--brand-blue-light); color: var(--text-primary); }
+    .type-btn.active {
+      background: rgba(37,99,235,0.15); border-color: var(--brand-blue-light);
+      color: var(--brand-blue-light);
+    }
+    .type-btn .icon { font-size: 16px; }
+
+    .query-area {
+      width: 100%; background: var(--bg-card-light);
+      border: 1px solid var(--bg-card-border); border-radius: var(--border-radius);
+      padding: 16px; color: var(--text-primary); font-family: inherit;
+      font-size: 15px; resize: vertical; min-height: 130px; outline: none;
+      transition: var(--transition); line-height: 1.6;
+    }
+    .query-area::placeholder { color: var(--text-muted); }
+    .query-area:focus { border-color: var(--brand-blue-light); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .input-row {
+      display: flex; align-items: center; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;
+    }
+    .lang-select {
+      background: var(--bg-card-light); border: 1px solid var(--bg-card-border);
+      color: var(--text-primary); padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; font-family: inherit; outline: none; cursor: pointer;
+    }
+    .bis-toggle {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-secondary); font-size: 13px; cursor: pointer;
+    }
+    .toggle-switch {
+      position: relative; width: 40px; height: 22px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--bg-card-light);
+      border-radius: 22px; transition: 0.3s; cursor: pointer;
+      border: 1px solid var(--bg-card-border);
+    }
+    .toggle-slider:before {
+      content: ''; position: absolute; left: 2px; top: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--text-muted); transition: 0.3s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: rgba(37,99,235,0.3); border-color: var(--brand-blue-light); }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); background: var(--brand-blue-light); }
+
+    .analyze-btn {
+      margin-left: auto;
+      background: linear-gradient(135deg, var(--brand-blue-mid), var(--brand-blue));
+      color: white; border: none; padding: 12px 28px; border-radius: 12px;
+      font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; gap: 8px;
+      transition: var(--transition); letter-spacing: 0.02em;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+    }
+    .analyze-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,0.4); }
+    .analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Tender upload */
+    .upload-area {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      border: 2px dashed var(--bg-card-border); border-radius: var(--border-radius);
+      padding: 3rem 2rem; cursor: pointer; transition: var(--transition);
+    }
+    .upload-area:hover, .upload-area.drag-over { border-color: var(--brand-blue-light); background: rgba(37,99,235,0.04); }
+    .upload-area.active { display: flex; }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .upload-text { color: var(--text-secondary); font-size: 14px; text-align: center; }
+    .upload-text strong { color: var(--brand-blue-light); cursor: pointer; }
+
+    /* ============================================================
+       LOADING STATE
+    ============================================================ */
+    .loading-overlay {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1.5rem; padding: 4rem 2rem; text-align: center;
+    }
+    .loading-overlay.visible { display: flex; }
+    .spinner {
+      width: 48px; height: 48px; border: 3px solid var(--bg-card-border);
+      border-top-color: var(--brand-blue-light); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-steps { display: flex; flex-direction: column; gap: 8px; }
+    .loading-step {
+      display: flex; align-items: center; gap: 10px; font-size: 13px;
+      color: var(--text-muted); transition: var(--transition);
+    }
+    .loading-step.active { color: var(--brand-blue-light); }
+    .loading-step.done { color: var(--green); }
+    .step-icon { font-size: 16px; }
+
+    /* ============================================================
+       RESULTS
+    ============================================================ */
+    .results { display: none; animation: fadeUp 0.5s ease; }
+    .results.visible { display: block; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:none;} }
+
+    .section-gap { height: 1.5rem; }
+
+    /* ============================================================
+       REQUIREMENT CARD
+    ============================================================ */
+    .req-card {
+      background: linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(26,58,107,0.05) 100%);
+      border: 1px solid rgba(37,99,235,0.2);
+      border-radius: var(--border-radius-lg); padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .req-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      color: var(--brand-blue-light); text-transform: uppercase; margin-bottom: 1.2rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .req-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;
+    }
+    .req-item { display: flex; flex-direction: column; gap: 4px; }
+    .req-label { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+    .req-value { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+
+    /* ============================================================
+       SECTION HEADERS
+    ============================================================ */
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1rem; padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+    .section-icon { font-size: 20px; }
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .section-count {
+      margin-left: auto; background: rgba(37,99,235,0.15);
+      color: var(--brand-blue-light); font-size: 11px; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px;
+    }
+
+    /* ============================================================
+       STANDARD CARD
+    ============================================================ */
+    .standards-grid { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+    .std-card {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius-lg); padding: 1.5rem;
+      transition: var(--transition); position: relative; overflow: hidden;
+    }
+    .std-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--brand-blue-mid); border-radius: 3px 0 0 3px;
+      transition: var(--transition);
+    }
+    .std-card.primary::before { background: linear-gradient(180deg, var(--brand-blue-light), var(--brand-blue-mid)); }
+    .std-card.allied::before { background: var(--text-muted); }
+    .std-card:hover { border-color: rgba(37,99,235,0.3); box-shadow: 0 4px 24px rgba(37,99,235,0.1); }
+
+    .std-card-top { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+    .std-number {
+      font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600;
+      color: var(--brand-blue-light);
+    }
+    .std-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+    .std-badges { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+
+    .badge {
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px;
+      letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+    .badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-blue { background: rgba(37,99,235,0.1); color: var(--brand-blue-light); border: 1px solid rgba(37,99,235,0.3); }
+    .badge-gray { background: rgba(100,116,139,0.1); color: var(--text-muted); border: 1px solid rgba(100,116,139,0.2); }
+
+    .relevance-bar { margin-top: 10px; }
+    .relevance-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .bar-track { height: 4px; background: var(--bg-card-border); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand-blue-light), var(--brand-accent)); border-radius: 2px; transition: width 1s ease; }
+
+    .std-expand { margin-top: 1rem; }
+    .expand-btn {
+      background: none; border: none; color: var(--text-secondary); font-size: 12px;
+      cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px;
+      padding: 4px 0; transition: var(--transition);
+    }
+    .expand-btn span { display: inline-block; transition: transform 0.25s ease; }
+    .expand-btn:hover { color: var(--text-primary); }
+
+    /* ── Explanation Sections ───────────────────────────────────────── */
+    .expl-section {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      border-left: 3px solid var(--brand-blue, #2563eb);
+    }
+    .expl-section.expl-why {
+      border-left-color: #22c55e;
+      background: rgba(34,197,94,0.06);
+    }
+    .expl-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .expl-text {
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    .expl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 4px 16px;
+    }
+    .expl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .expl-key {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .expl-val {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    .expl-list {
+      margin: 4px 0 0 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+    .expl-list-cols {
+      columns: 2;
+      column-gap: 24px;
+    }
+    @media (max-width: 600px) { .expl-list-cols { columns: 1; } }
+
+    .std-detail {
+      margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bg-card-border);
+      display: none; animation: fadeUp 0.3s ease;
+    }
+    .std-detail.open { display: block; }
+    .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .detail-item { display: flex; flex-direction: column; gap: 2px; }
+    .detail-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
+    .detail-value { font-size: 13px; color: var(--text-primary); }
+    .explanation-box {
+      background: rgba(37,99,235,0.05); border: 1px solid rgba(37,99,235,0.15);
+      border-radius: 8px; padding: 12px 16px; font-size: 13px;
+      color: var(--text-secondary); line-height: 1.6; margin-bottom: 1rem;
+    }
+    .std-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .action-btn {
+      font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px;
+      border: 1px solid var(--bg-card-border); background: transparent;
+      color: var(--text-secondary); cursor: pointer; font-family: inherit;
+      transition: var(--transition); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .action-btn:hover { border-color: var(--brand-blue-light); color: var(--brand-blue-light); }
+    .action-btn.primary-btn {
+      background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.3);
+      color: var(--brand-blue-light);
+    }
+
+    /* ============================================================
+       ALLIED ACCORDION
+    ============================================================ */
+    .allied-section { margin-bottom: 1.5rem; }
+    .accordion {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius); margin-bottom: 8px; overflow: hidden;
+    }
+    .accordion-header {
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+      cursor: pointer; transition: var(--transition);
+    }
+    .accordion-header:hover { background: rgba(255,255,255,0.02); }
+    .accordion-icon { font-size: 18px; }
+    .accordion-title { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+    .accordion-count { font-size: 12px; color: var(--text-muted); }
+    .accordion-chevron { font-size: 14px; color: var(--text-muted); transition: transform 0.3s; }
+    .accordion.open .accordion-chevron { transform: rotate(180deg); }
+    .accordion-body { display: none; padding: 0 20px 16px; border-top: 1px solid var(--bg-card-border); }
+    .accordion.open .accordion-body { display: block; }
+    .allied-item {
+      padding: 12px 0; border-bottom: 1px solid rgba(148,163,184,0.06);
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .allied-item:last-child { border-bottom: none; }
+    .allied-number { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--brand-blue-light); white-space: nowrap; }
+    .allied-info { flex: 1; }
+    .allied-title-text { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
+    .allied-evidence { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ============================================================
+       TENDER ISSUES
+    ============================================================ */
+    .tender-section { margin-bottom: 1.5rem; }
+    .issue-card {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius); padding: 1rem 1.25rem;
+      margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px;
+    }
+    .issue-type-icon { font-size: 18px; margin-top: 1px; }
+    .issue-content { flex: 1; }
+    .issue-type-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 4px; }
+    .issue-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .issue-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .issue-MISSING_STANDARD .issue-type-label { color: var(--red); }
+    .issue-OUTDATED_STANDARD .issue-type-label { color: var(--yellow); }
+    .issue-AMBIGUOUS_REQUIREMENT .issue-type-label { color: var(--yellow); }
+    .issue-CONFLICTING_REQUIREMENT .issue-type-label { color: var(--red); }
+
+    /* ============================================================
+       SOURCES
+    ============================================================ */
+    .sources-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+    .source-item {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius); padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .source-num { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--brand-blue-light); flex-shrink: 0; }
+    .source-info { flex: 1; min-width: 0; }
+    .source-title { font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .source-url-link {
+      font-size: 11px; color: var(--brand-blue-light); text-decoration: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+    }
+    .source-url-link:hover { text-decoration: underline; }
+
+    /* ============================================================
+       EMPTY & ERROR STATES
+    ============================================================ */
+    .empty-state {
+      text-align: center; padding: 3rem; color: var(--text-muted); font-size: 14px;
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .error-box {
+      background: var(--red-bg); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--border-radius); padding: 1rem 1.5rem;
+      color: var(--red); font-size: 14px; margin-bottom: 1.5rem;
+    }
+
+    /* ============================================================
+       QUICK EXAMPLES
+    ============================================================ */
+    .examples {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .example-chip {
+      background: var(--bg-card); border: 1px solid var(--bg-card-border);
+      border-radius: 20px; padding: 6px 14px; font-size: 12px;
+      color: var(--text-secondary); cursor: pointer; transition: var(--transition);
+    }
+    .example-chip:hover { border-color: var(--brand-blue-light); color: var(--text-primary); }
+
+    /* ============================================================
+       TOAST
+    ============================================================ */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;
+      background: var(--bg-card-light); border: 1px solid var(--bg-card-border);
+      border-radius: var(--border-radius); padding: 12px 20px;
+      font-size: 13px; color: var(--text-primary);
+      box-shadow: var(--shadow-card); transform: translateY(100px);
+      opacity: 0; transition: var(--transition); max-width: 320px;
+    }
+    .toast.show { transform: none; opacity: 1; }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 640px) {
+      .main-wrap { padding: 1rem; }
+      .input-card { padding: 1.25rem; }
+      .hero h1 { font-size: 1.6rem; }
+      .analyze-btn { width: 100%; justify-content: center; }
+      .input-row { flex-direction: column; align-items: stretch; }
+      .std-badges { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/">
+        <div class="logo-emblem">🏛️</div>
+        <div class="logo-text">
+          <span class="logo-main">BIS AI Assistant</span>
+          <span class="logo-sub">PROCUREMENT STANDARDS RECOMMENDER</span>
+        </div>
+      </a>
+      <div class="header-badge">SIH 2026 · PS 26108</div>
+      <div class="header-status">
+        <div class="status-dot" id="serverDot"></div>
+        <span id="serverStatus">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-wrap">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-badge">🤖 AI-Powered · BIS Verified · Explainable</div>
+      <h1>Find the Right Indian Standards<br>for Any Procurement</h1>
+      <p>Describe what you're procuring — in any language — and our AI identifies applicable BIS standards, verifies them against the official BIS portal, and explains every recommendation.</p>
+    </div>
+
+    <!-- INPUT CARD -->
+    <div class="input-card">
+      <div class="input-type-row">
+        <button class="type-btn active" data-type="product_description" onclick="setInputType(this)">
+          <span class="icon">📦</span> Product Description
+        </button>
+        <button class="type-btn" data-type="technical_specification" onclick="setInputType(this)">
+          <span class="icon">📋</span> Technical Specification
+        </button>
+        <button class="type-btn" data-type="tender" onclick="setInputType(this)">
+          <span class="icon">📄</span> Tender Document
+        </button>
+        <button class="type-btn" data-type="is_number" onclick="setInputType(this)">
+          <span class="icon">🔍</span> IS Number
+        </button>
+      </div>
+
+      <!-- Text input area -->
+      <div id="textInputArea">
+        <textarea
+          id="queryInput"
+          class="query-area"
+          placeholder="e.g. Stainless steel drinking water bottles for government schools…&#10;मैं पैक्ड पेयजल के लिए मानक जानना चाहता हूँ…&#10;நீர் சேமிப்பு கலன்கள் தேவை…"
+        ></textarea>
+      </div>
+
+      <!-- Tender upload area -->
+      <div class="upload-area" id="uploadArea"
+        onclick="document.getElementById('tenderFile').click()"
+        ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+        <div class="upload-icon">📂</div>
+        <div class="upload-text">
+          <strong>Click to upload</strong> or drag & drop your tender document<br>
+          <span id="uploadFileName" style="color: var(--green); margin-top: 8px; display: block;"></span>
+          Supports PDF and DOCX files
+        </div>
+        <input type="file" id="tenderFile" accept=".pdf,.docx" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+
+      <div class="input-row">
+        <select class="lang-select" id="langSelect">
+          <option value="auto">🌐 Auto Detect Language</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="te">Telugu</option>
+          <option value="ta">Tamil</option>
+          <option value="kn">Kannada</option>
+          <option value="ml">Malayalam</option>
+          <option value="mr">Marathi</option>
+          <option value="bn">Bengali</option>
+          <option value="gu">Gujarati</option>
+        </select>
+
+        <label class="bis-toggle">
+          <span class="toggle-switch">
+            <input type="checkbox" id="bisDiscovery" checked>
+            <span class="toggle-slider"></span>
+          </span>
+          BIS Live Discovery
+        </label>
+
+        <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+          <span>✦</span> Analyze Requirement
+        </button>
+      </div>
+
+      <div class="examples">
+        <span class="example-chip" onclick="fillExample('Stainless steel drinking water bottles for government schools')">Water Bottles</span>
+        <span class="example-chip" onclick="fillExample('Packaged drinking water for hospital supply')">Packaged Water</span>
+        <span class="example-chip" onclick="fillExample('Masonry cement for construction')">Masonry Cement</span>
+        <span class="example-chip" onclick="fillExample('LED street lights for municipal corporation')">LED Street Lights</span>
+        <span class="example-chip" onclick="fillExample('Ball point pens for office use')">Ball Point Pens</span>
+        <span class="example-chip" onclick="fillExample('पीने के पानी के लिए स्टेनलेस स्टील की बोतलें')">Hindi Query</span>
+      </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="loading-steps">
+        <div class="loading-step" id="step1"><span class="step-icon">🧠</span> Gemini understanding requirement…</div>
+        <div class="loading-step" id="step2"><span class="step-icon">🔍</span> BIS live discovery…</div>
+        <div class="loading-step" id="step3"><span class="step-icon">🗄️</span> MongoDB hybrid retrieval…</div>
+        <div class="loading-step" id="step4"><span class="step-icon">✅</span> Verification & classification…</div>
+        <div class="loading-step" id="step5"><span class="step-icon">📊</span> Building recommendation report…</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results" id="resultsPanel">
+      <!-- Error box -->
+      <div class="error-box" id="errorBox" style="display:none"></div>
+
+      <!-- Requirement Understanding -->
+      <div class="req-card" id="reqCard" style="display:none">
+        <div class="req-title">📋 Requirement Understanding</div>
+        <div class="req-grid" id="reqGrid"></div>
+      </div>
+
+      <!-- Warnings -->
+      <div id="warningsBox"></div>
+
+      <!-- Primary Standards -->
+      <div id="primarySection" style="display:none">
+        <div class="section-header">
+          <span class="section-icon">⭐</span>
+          <span class="section-title">Primary Standards</span>
+          <span class="section-count" id="primaryCount">0</span>
+        </div>
+        <div class="standards-grid" id="primaryGrid"></div>
+      </div>
+
+      <!-- Allied Standards -->
+      <div id="alliedSection" style="display:none">
+        <div class="section-header">
+          <span class="section-icon">🔗</span>
+          <span class="section-title">Allied Standards</span>
+        </div>
+        <div class="allied-section" id="alliedGrid"></div>
+      </div>
+
+      <!-- Tender Issues -->
+      <div id="tenderSection" style="display:none">
+        <div class="section-header">
+          <span class="section-icon">⚠️</span>
+          <span class="section-title">Tender Analysis Issues</span>
+          <span class="section-count" id="tenderCount">0</span>
+        </div>
+        <div class="tender-section" id="tenderGrid"></div>
+      </div>
+
+      <!-- Official Sources -->
+      <div id="sourcesSection" style="display:none">
+        <div class="section-header">
+          <span class="section-icon">🔗</span>
+          <span class="section-title">Official BIS Sources</span>
+        </div>
+        <div class="sources-grid" id="sourcesGrid"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ============================================================
+       STATE
+    ============================================================ */
+    let currentInputType = 'product_description';
+    let selectedFile = null;
+    const API_BASE = window.location.origin;
+
+    /* ============================================================
+       STARTUP — Health check
+    ============================================================ */
+    async function checkHealth() {
+      try {
+        const r = await fetch(`${API_BASE}/api/health`);
+        const data = await r.json();
+        const dot = document.getElementById('serverDot');
+        const status = document.getElementById('serverStatus');
+        if (r.ok) {
+          dot.style.background = 'var(--green)';
+          status.textContent = `API Online · ${data.mongodb || ''}`;
+        } else {
+          dot.style.background = 'var(--red)';
+          status.textContent = 'API Error';
+        }
+      } catch {
+        document.getElementById('serverDot').style.background = 'var(--red)';
+        document.getElementById('serverStatus').textContent = 'API Offline — Start backend first';
+      }
+    }
+    checkHealth();
+
+    /* ============================================================
+       INPUT TYPE TOGGLE
+    ============================================================ */
+    function setInputType(btn) {
+      currentInputType = btn.dataset.type;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const textArea = document.getElementById('textInputArea');
+      const uploadArea = document.getElementById('uploadArea');
+      if (currentInputType === 'tender') {
+        textArea.style.display = 'none';
+        uploadArea.classList.add('active');
+      } else {
+        textArea.style.display = 'block';
+        uploadArea.classList.remove('active');
+        if (currentInputType === 'technical_specification') {
+          document.getElementById('queryInput').placeholder = 'Paste technical specifications here…\ne.g. Supply 1000 stainless steel bottles, capacity 1L, food-grade, leak-proof…';
+        } else if (currentInputType === 'is_number') {
+          document.getElementById('queryInput').placeholder = 'Enter IS Number…\ne.g. IS 16102 or 16102 (Part 1)';
+        } else {
+          document.getElementById('queryInput').placeholder = 'Describe what you need to procure…\ne.g. LED street lights for municipal roads…';
+        }
+      }
+    }
+
+    /* ============================================================
+       FILE HANDLING
+    ============================================================ */
+    function handleFileSelect(e) {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        document.getElementById('uploadFileName').textContent = `✓ ${selectedFile.name} (${(selectedFile.size/1024).toFixed(0)} KB)`;
+      }
+    }
+    function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+    function handleDrop(e) {
+      e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+      selectedFile = e.dataTransfer.files[0];
+      if (selectedFile) {
+        document.getElementById('uploadFileName').textContent = `✓ ${selectedFile.name}`;
+      }
+    }
+
+    function fillExample(text) {
+      document.getElementById('queryInput').value = text;
+      setInputType(document.querySelector('[data-type="product_description"]'));
+    }
+
+    /* ============================================================
+       LOADING STEPS
+    ============================================================ */
+    let stepInterval;
+    function startLoadingSteps() {
+      const steps = ['step1','step2','step3','step4','step5'];
+      let i = 0;
+      steps.forEach(id => document.getElementById(id).className = 'loading-step');
+      stepInterval = setInterval(() => {
+        if (i > 0) document.getElementById(steps[i-1]).className = 'loading-step done';
+        if (i < steps.length) {
+          document.getElementById(steps[i]).className = 'loading-step active';
+          i++;
+        } else {
+          clearInterval(stepInterval);
+        }
+      }, 2200);
+    }
+    function stopLoadingSteps() {
+      clearInterval(stepInterval);
+      ['step1','step2','step3','step4','step5'].forEach(id =>
+        document.getElementById(id).className = 'loading-step done');
+    }
+
+    /* ============================================================
+       MAIN ANALYZE FUNCTION
+    ============================================================ */
+    async function analyze() {
+      const btn = document.getElementById('analyzeBtn');
+      btn.disabled = true;
+
+      hideResults();
+      document.getElementById('loadingOverlay').classList.add('visible');
+      startLoadingSteps();
+
+      try {
+        let data;
+
+        if (currentInputType === 'tender') {
+          if (!selectedFile) { showError('Please upload a tender document.'); return; }
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('language', document.getElementById('langSelect').value);
+          const resp = await fetch(`${API_BASE}/api/analyze/tender`, { method: 'POST', body: formData });
+          data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || 'Tender analysis failed');
+          renderTenderResult(data);
+        } else if (currentInputType === 'is_number') {
+          const query = document.getElementById('queryInput').value.trim();
+          if (!query) { showError('Please enter an IS Number.'); return; }
+          const resp = await fetch(`${API_BASE}/api/standards/${encodeURIComponent(query)}`);
+          if (!resp.ok) {
+            const errData = await resp.json().catch(()=>({}));
+            throw new Error(errData.detail || 'Standard not found');
+          }
+          const doc = await resp.json();
+          // Mock data format for renderResult
+          doc.classification = 'DIRECT_PRODUCT';
+          doc.relevance = 'HIGH';
+          doc.score = 1.0;
+          doc.explanation = 'Direct IS Number lookup.';
+          data = {
+            requirement: { product: query, product_type: 'Direct Lookup', purpose: 'Standard Verification' },
+            primary_standards: [doc],
+            warnings: []
+          };
+          renderResult(data);
+        } else {
+          const query = document.getElementById('queryInput').value.trim();
+          if (!query) { showError('Please enter a product description or specification.'); return; }
+          const payload = {
+            query,
+            input_type: currentInputType,
+            language: document.getElementById('langSelect').value,
+            enable_bis_discovery: document.getElementById('bisDiscovery').checked,
+          };
+          const resp = await fetch(`${API_BASE}/api/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          data = await resp.json();
+          if (!resp.ok) throw new Error(data.detail || 'Analysis failed');
+          renderResult(data);
+        }
+
+      } catch (err) {
+        showError(`Error: ${err.message}`);
+      } finally {
+        stopLoadingSteps();
+        document.getElementById('loadingOverlay').classList.remove('visible');
+        btn.disabled = false;
+      }
+    }
+
+    /* ============================================================
+       RENDER: FULL ANALYSIS RESULT
+    ============================================================ */
+    function renderResult(data) {
+      showResults();
+
+      // Requirement
+      const req = data.requirement || {};
+      if (Object.keys(req).length) {
+        renderRequirement(req);
+      }
+
+      // Warnings
+      renderWarnings(data.warnings || []);
+
+      // Primary Standards
+      const primary = data.primary_standards || [];
+      const primarySection = document.getElementById('primarySection');
+      primarySection.style.display = 'block';
+      document.getElementById('primaryCount').textContent = primary.length;
+      if (primary.length) {
+        document.getElementById('primaryGrid').innerHTML = primary.map((s,i) => renderStdCard(s, 'primary', i)).join('');
+      } else {
+        document.getElementById('primaryGrid').innerHTML = `
+          <div style="padding: 30px 20px; text-align: center; color: var(--text-secondary); background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+            <div style="font-size: 24px; margin-bottom: 12px;">🔍</div>
+            <div style="font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px;">No Primary Standards Found</div>
+            <div style="font-size: 13px;">We couldn't find a direct product standard for this requirement. Try adjusting your query or enabling "BIS Live Discovery".</div>
+          </div>
+        `;
+      }
+
+      // Allied Standards
+      renderAllied(data.allied_standards || {});
+
+      // Sources
+      const sources = data.sources || [];
+      if (sources.length) {
+        document.getElementById('sourcesSection').style.display = 'block';
+        document.getElementById('sourcesGrid').innerHTML = sources.map(renderSource).join('');
+      }
+
+      // Scroll to results
+      document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ============================================================
+       RENDER: TENDER RESULT
+    ============================================================ */
+    function renderTenderResult(data) {
+      showResults();
+      const analysis = data.tender_analysis || {};
+
+      // Show pages extracted
+      renderWarnings([`${data.pages_extracted || 0} pages extracted from document.`]);
+
+      // Show tender issues
+      const allIssues = [
+        ...(analysis.potential_gaps || []).map(g => ({ ...g, issueType: g.type || 'MISSING_STANDARD' })),
+        ...(analysis.outdated_references || []).map(r => ({ ...r, issueType: 'OUTDATED_STANDARD', description: `${r.is_number} — ${r.reason}` })),
+        ...(analysis.ambiguous_requirements || []).map(a => ({ ...a, issueType: 'AMBIGUOUS_REQUIREMENT', description: a.issue || a.text })),
+        ...(analysis.conflicting_requirements || []).map(c => ({ ...c, issueType: 'CONFLICTING_REQUIREMENT' })),
+      ];
+
+      if (allIssues.length) {
+        document.getElementById('tenderSection').style.display = 'block';
+        document.getElementById('tenderCount').textContent = allIssues.length;
+        document.getElementById('tenderGrid').innerHTML = allIssues.map(renderIssue).join('');
+      }
+
+      // Products found
+      const products = analysis.products || [];
+      if (products.length) {
+        renderRequirement({ product: products.join(', '), purpose: 'Extracted from tender' });
+      }
+
+      document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ============================================================
+       RENDER HELPERS
+    ============================================================ */
+    function renderRequirement(req) {
+      const card = document.getElementById('reqCard');
+      card.style.display = 'block';
+      const fields = [
+        ['Product', req.product],
+        ['Product Type', req.product_type?.replace(/_/g, ' ')],
+        ['Material', req.material],
+        ['Purpose', req.purpose],
+        ['Industry', req.industry?.replace(/_/g, ' ')],
+        ['Application', req.application],
+        ['Context', req.procurement_context],
+        ['Language', req.language],
+      ].filter(([, v]) => v);
+
+      document.getElementById('reqGrid').innerHTML = fields.map(([l, v]) => `
+        <div class="req-item">
+          <span class="req-label">${l}</span>
+          <span class="req-value">${esc(v)}</span>
+        </div>
+      `).join('');
+
+      if ((req.referenced_is_numbers || []).length) {
+        document.getElementById('reqGrid').innerHTML += `
+          <div class="req-item" style="grid-column: 1 / -1">
+            <span class="req-label">Referenced IS Numbers</span>
+            <span class="req-value">${req.referenced_is_numbers.map(n => `<code style="font-family:monospace;background:rgba(37,99,235,0.1);padding:2px 6px;border-radius:4px;">${esc(n)}</code>`).join(' ')}</span>
+          </div>`;
+      }
+    }
+
+    function renderWarnings(warnings) {
+      const box = document.getElementById('warningsBox');
+      if (!warnings.length) { box.innerHTML = ''; return; }
+      box.innerHTML = warnings.map(w => `
+        <div style="background:var(--yellow-bg);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--yellow);margin-bottom:8px;">⚠ ${esc(w)}</div>
+      `).join('');
+    }
+
+    function renderStdCard(s, type, idx) {
+      const v = s.verification || {};
+      const badge = getBadgeClass(v.ui_badge || v.lifecycle_status || '');
+      const lc = s.lifecycle || {};
+      const scorePercent = Math.round((s.score || 0) * 100);
+      const certInfo = s.certification || {};
+
+      return `
+      <div class="std-card ${type}" id="stdCard${idx}">
+        <div class="std-card-top">
+          <div style="flex:1">
+            <div class="std-number">${esc(s.is_number || '')}</div>
+            <div class="std-title">${esc(s.title || 'No title')}</div>
+          </div>
+          <div class="std-badges">
+            <span class="badge badge-blue">${esc(s.relevance || '')}</span>
+            <span class="badge ${badge}">${esc(v.ui_badge || v.lifecycle_status || 'Unknown')}</span>
+            ${s.classification ? `<span class="badge badge-gray">${s.classification.replace(/_/g,' ')}</span>` : ''}
+            <span class="badge badge-yellow">${esc(s.status === 'CACHED' || s.verification_source === 'mongodb_cache' ? 'CACHE + BIS FRESHNESS VERIFIED' : 'LIVE BIS VERIFIED')}</span>
+          </div>
+        </div>
+
+        <div class="relevance-bar">
+          <div class="relevance-label">Relevance Score: ${scorePercent}%</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${scorePercent}%"></div>
+          </div>
+        </div>
+
+        <div class="std-expand">
+          <button class="expand-btn" onclick="toggleDetail('stdCard${idx}')">
+            <span>▼</span> Details, Lifecycle & Explanation
+          </button>
+          <div class="std-detail" id="stdCard${idx}Detail">
+            ${renderExplanationSections(s)}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderExplanationSections(s) {
+      const lc = s.lifecycle || {};
+      const cert = s.certification || {};
+      const amendments = s.amendments || [];
+      const normRefs = s.normative_references || [];
+      const testMethods = s.test_methods || [];
+      const safety = s.safety_standards || [];
+      const se = s.structured_explanation || {};
+      let html = '';
+
+      // ── WHY RECOMMENDED ──────────────────────────────────────────
+      const whyText = se.why_recommended || ((s.explanation || '').split('. ')[0] + '.');
+      if (whyText && whyText.length > 5) {
+        html += `<div class="expl-section expl-why">
+          <div class="expl-label">💡 Why Recommended</div>
+          <div class="expl-text">${esc(whyText)}</div>
+        </div>`;
+      }
+
+      if (se.applicability) {
+        html += `<div class="expl-section">
+          <div class="expl-label">🎯 Applicability</div>
+          <div class="expl-text">${esc(se.applicability)}</div>
+        </div>`;
+      }
+
+      if (se.why_not_primary) {
+        html += `<div class="expl-section" style="background:rgba(245,158,11,0.05); border-left: 3px solid var(--yellow); padding: 10px;">
+          <div class="expl-label" style="color:var(--yellow); font-weight:600; font-size:13px; margin-bottom:4px;">⚠️ Why Not Primary</div>
+          <div class="expl-text" style="font-size:13px">${esc(se.why_not_primary)}</div>
+        </div>`;
+      }
+
+      if (se.procurement_checks) {
+        html += `<div class="expl-section">
+          <div class="expl-label">✅ Important Procurement Checks</div>
+          <div class="expl-text" style="white-space: pre-line; font-size:13px;">${esc(se.procurement_checks)}</div>
+        </div>`;
+      }
+
+      // ── STANDARD DETAILS ─────────────────────────────────────────
+      const detailRows = [
+        ['IS Number', s.is_number],
+        ['Title', s.title],
+        ['Type', s.type_of_standard],
+        ['BIS Status', s.bis_status],
+        ['Department', s.department],
+        ['Technical Committee', s.technical_committee],
+        ['Degree of Equivalence', s.degree_of_equivalence],
+        ['Last Verified', s.last_verified],
+      ].filter(([, v]) => v);
+      if (detailRows.length) {
+        html += `<div class="expl-section">
+          <div class="expl-label">📋 Standard Details</div>
+          <div class="expl-grid">
+            ${detailRows.map(([l,v]) => `<div class="expl-row"><span class="expl-key">${l}</span><span class="expl-val">${esc(String(v))}</span></div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // ── LIFECYCLE ────────────────────────────────────────────────
+      const lcRows = [
+        ['Status', lc.status || s.bis_status],
+        ['Revisions', lc.number_of_revisions],
+        ['Amendments Issued', lc.number_of_amendments],
+        ['Reaffirmation Year', lc.reaffirmation_year],
+        ['Reviewed In', lc.reviewed_in],
+        ['Supersedes', lc.superseding_is],
+      ].filter(([, v]) => v);
+      if (lcRows.length) {
+        html += `<div class="expl-section">
+          <div class="expl-label">🔄 Lifecycle</div>
+          <div class="expl-grid">
+            ${lcRows.map(([l,v]) => `<div class="expl-row"><span class="expl-key">${l}</span><span class="expl-val">${esc(String(v))}</span></div>`).join('')}
+          </div>
+        </div>`;
+      }
+
+      // ── AMENDMENTS ───────────────────────────────────────────────
+      if (amendments.length) {
+        html += `<div class="expl-section">
+          <div class="expl-label">📝 Amendments (${amendments.length})</div>
+          <ul class="expl-list">
+            ${amendments.map(a => {
+              const num = a.number || a.amendment_number || '';
+              const date = a.date || a.implementation_date || '';
+              const detail = a.details || '';
+              let line = num || 'Amendment';
+              if (date && !line.includes(date)) line += ` (${date})`;
+              // Only show detail if it genuinely adds info
+              if (detail && detail !== line && !detail.match(/^[\w\s]+ \(\d{4}\)$/)) {
+                line += ` — ${detail}`;
+              }
+              return `<li>${esc(line)}</li>`;
+            }).join('')}
+          </ul>
+        </div>`;
+      }
+
+      // ── SCOPE ────────────────────────────────────────────────────
+      if (s.scope && s.scope !== 'Not verified from available BIS evidence.') {
+        html += `<div class="expl-section">
+          <div class="expl-label">📖 BIS Scope</div>
+          <div class="expl-text" style="font-style:italic">${esc(s.scope)}</div>
+        </div>`;
+      }
+
+      // ── REFERRED INDIAN STANDARDS ────────────────────────────────
+      if (normRefs.length) {
+        html += `<div class="expl-section">
+          <div class="expl-label">🔗 Referred Indian Standards (${normRefs.length})</div>
+          <ul class="expl-list expl-list-cols">
+            ${normRefs.map(nr => {
+              const num = typeof nr === 'string' ? nr : (nr.standard_number || nr.is_number || '');
+              const title = typeof nr === 'object' ? (nr.title || '') : '';
+              return `<li><strong>${esc(num)}</strong>${title ? ' — ' + esc(title) : ''}</li>`;
+            }).join('')}
+          </ul>
+        </div>`;
+      }
+
+      // ── TEST METHODS ─────────────────────────────────────────────
+      if (testMethods.length) {
+        html += `<div class="expl-section">
+          <div class="expl-label">🧪 Test Methods (${testMethods.length})</div>
+          <ul class="expl-list">
+            ${testMethods.map(tm => {
+              const num = typeof tm === 'string' ? tm : (tm.standard_number || '');
+              const title = typeof tm === 'object' ? (tm.title || '') : '';
+              return `<li><strong>${esc(num)}</strong>${title ? ' — ' + esc(title) : ''}</li>`;
+            }).join('')}
+          </ul>
+        </div>`;
+      }
+
+      // ── CERTIFICATION ────────────────────────────────────────────
+      const certStatus = cert.status || '';
+      if (certStatus && !['n/a', 'none', 'unknown'].includes(certStatus.toLowerCase())) {
+        const mandatory = cert.mandatory === true ? 'Mandatory' : cert.mandatory === false ? 'Voluntary' : '';
+        const scheme = cert.scheme || '';
+        html += `<div class="expl-section">
+          <div class="expl-label">🏅 Certification</div>
+          <div class="expl-grid">
+            <div class="expl-row"><span class="expl-key">BIS Certification</span><span class="expl-val">${esc(certStatus)}</span></div>
+            ${mandatory ? `<div class="expl-row"><span class="expl-key">Requirement</span><span class="expl-val">${mandatory}</span></div>` : ''}
+            ${scheme ? `<div class="expl-row"><span class="expl-key">Scheme</span><span class="expl-val">${esc(scheme)}</span></div>` : ''}
+          </div>
+        </div>`;
+      }
+
+      // ── OFFICIAL LINK ────────────────────────────────────────────
+      html += `<div class="std-actions" style="margin-top:1rem">
+        ${s.official_bis_url ? `<a class="action-btn primary-btn" href="${esc(s.official_bis_url)}" target="_blank" rel="noopener">🔗 Official BIS Source</a>` : ''}
+        <button class="action-btn" onclick="lookupStandard('${esc(s.is_number)}')">🔎 Lookup in DB</button>
+      </div>`;
+
+      return html;
+    }
+
+    function renderAllied(allied) {
+      const section = document.getElementById('alliedSection');
+      const ALLIED_GROUPS = [
+        { key: 'normative_references', icon: '📌', label: 'Normative References' },
+        { key: 'test_methods', icon: '🧪', label: 'Test Methods' },
+        { key: 'sampling_methods', icon: '📊', label: 'Sampling Methods' },
+        { key: 'safety', icon: '🛡️', label: 'Safety Standards' },
+        { key: 'installation', icon: '🔧', label: 'Installation Standards' },
+        { key: 'terminology', icon: '📖', label: 'Terminology / Classification' },
+        { key: 'related_products', icon: '🔗', label: 'Related Products' },
+        { key: 'components', icon: '⚙️', label: 'Components' },
+        { key: 'packaging', icon: '📦', label: 'Packaging' },
+        { key: 'cross_references', icon: '↔️', label: 'Cross References' },
+      ];
+
+      const hasAny = ALLIED_GROUPS.some(g => (allied[g.key] || []).length > 0);
+      if (!hasAny) return;
+
+      section.style.display = 'block';
+      document.getElementById('alliedGrid').innerHTML = ALLIED_GROUPS.map(g => {
+        const items = allied[g.key] || [];
+        if (!items.length) return '';
+        return `
+          <div class="accordion" id="acc_${g.key}">
+            <div class="accordion-header" onclick="toggleAccordion('acc_${g.key}')">
+              <span class="accordion-icon">${g.icon}</span>
+              <span class="accordion-title">${g.label}</span>
+              <span class="accordion-count">${items.length} standard${items.length !== 1 ? 's' : ''}</span>
+              <span class="accordion-chevron">▼</span>
+            </div>
+            <div class="accordion-body">
+              ${items.map(item => `
+                <div class="allied-item">
+                  <span class="allied-number">${esc(item.standard || item.is_number || '')}</span>
+                  <div class="allied-info">
+                    <div class="allied-title-text">${esc(item.title || '')}</div>
+                    <div class="allied-evidence">
+                      ${item.evidence ? `📎 ${esc(item.evidence)}` : ''}
+                      ${item.confidence ? ` · Confidence: ${Math.round((item.confidence||0)*100)}%` : ''}
+                      ${item.source_url ? ` · <a href="${esc(item.source_url)}" target="_blank" style="color:var(--brand-blue-light)">BIS Source</a>` : ''}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderIssue(issue) {
+      const icons = {
+        MISSING_STANDARD: '❌', MISSING_TEST_METHOD: '🧪',
+        MISSING_CERTIFICATION: '🏅', MISSING_TECHNICAL_PARAMETER: '📏',
+        OUTDATED_STANDARD: '⚠️', AMBIGUOUS_REQUIREMENT: '❓',
+        CONFLICTING_REQUIREMENT: '⚡',
+      };
+      const icon = icons[issue.issueType] || '⚠️';
+      return `
+        <div class="issue-card issue-${issue.issueType}">
+          <span class="issue-type-icon">${icon}</span>
+          <div class="issue-content">
+            <div class="issue-type-label">${issue.issueType?.replace(/_/g, ' ')}</div>
+            <div class="issue-text">${esc(issue.description || '')}</div>
+            ${issue.page ? `<div class="issue-meta">Page ${issue.page}${issue.section ? ` · ${issue.section}` : ''}</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    function renderSource(src) {
+      return `
+        <div class="source-item">
+          <span class="source-num">${esc(src.is_number || '')}</span>
+          <div class="source-info">
+            <div class="source-title">${esc(src.title || '')}</div>
+            ${src.url ? `<a class="source-url-link" href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.url)}</a>` : '<span style="color:var(--text-muted);font-size:11px">No BIS URL available</span>'}
+          </div>
+        </div>`;
+    }
+
+    /* ============================================================
+       UTILITIES
+    ============================================================ */
+    function detailItem(label, value) {
+      if (!value && value !== 0) return '';
+      return `<div class="detail-item">
+        <span class="detail-label">${label}</span>
+        <span class="detail-value">${esc(String(value))}</span>
+      </div>`;
+    }
+
+    function getBadgeClass(str) {
+      const s = (str || '').toLowerCase();
+      if (s.includes('current') || s.includes('verified')) return 'badge-green';
+      if (s.includes('needs') || s.includes('unknown') || s.includes('not yet')) return 'badge-yellow';
+      if (s.includes('withdrawn') || s.includes('superseded') || s.includes('not recommended')) return 'badge-red';
+      return 'badge-gray';
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function toggleDetail(cardId) {
+      const detail = document.getElementById(cardId + 'Detail');
+      if (!detail) return;
+      const isOpen = detail.classList.toggle('open');
+      // Update the button arrow and text
+      const btn = detail.previousElementSibling;
+      if (btn) {
+        const arrow = btn.querySelector('span');
+        if (arrow) arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+        btn.style.color = isOpen ? 'var(--brand-blue-light, #60a5fa)' : '';
+      }
+      if (isOpen) detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function toggleAccordion(id) {
+      document.getElementById(id).classList.toggle('open');
+    }
+
+    function showResults() {
+      document.getElementById('resultsPanel').classList.add('visible');
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    function hideResults() {
+      document.getElementById('resultsPanel').classList.remove('visible');
+      document.getElementById('primarySection').style.display = 'none';
+      document.getElementById('alliedSection').style.display = 'none';
+      document.getElementById('tenderSection').style.display = 'none';
+      document.getElementById('sourcesSection').style.display = 'none';
+      document.getElementById('reqCard').style.display = 'none';
+      document.getElementById('primaryGrid').innerHTML = '';
+      document.getElementById('alliedGrid').innerHTML = '';
+      document.getElementById('tenderGrid').innerHTML = '';
+      document.getElementById('sourcesGrid').innerHTML = '';
+      document.getElementById('warningsBox').innerHTML = '';
+      document.getElementById('errorBox').style.display = 'none';
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.style.display = 'block';
+      showResults();
+    }
+
+    async function lookupStandard(isNum) {
+      showToast(`Looking up ${isNum}…`);
+      try {
+        const r = await fetch(`${API_BASE}/api/standards/${encodeURIComponent(isNum)}`);
+        const data = await r.json();
+        showToast(r.ok ? `Found: ${data.title || isNum}` : `Not found in DB: ${isNum}`);
+      } catch { showToast('Lookup failed.'); }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /* ============================================================
+       KEYBOARD SHORTCUT
+    ============================================================ */
+    document.getElementById('queryInput').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Dependencies
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Debug/temp files
+*.png
+bis_html_dump.html
+bis_is_269_html.txt
+bis_is_269_text.txt
+bis_269_2015_text.txt
+bis_tabs_text.txt
+bis_search_debug.png
+standards.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Antigravity
+.gemini/

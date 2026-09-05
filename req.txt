@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pymongo
+google-generativeai
+python-dotenv
+pdfplumber
+python-docx
+playwright
+sentence-transformers
+certifi
