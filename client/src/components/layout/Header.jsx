@@ -57,10 +57,10 @@ export default function Header({
       >
         <img 
           src="/logo.png" 
-          alt="ISRA Logo" 
+          alt="ISRA" 
           style={{ 
-            height: '32px', 
-            width: 'auto', 
+            width: '36px', 
+            height: 'auto', 
             objectFit: 'contain' 
           }} 
         />

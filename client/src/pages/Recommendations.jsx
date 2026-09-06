@@ -170,10 +170,10 @@ export default function Recommendations({
         <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img 
             src="/logo.png" 
-            alt="ISRA Logo" 
+            alt="ISRA" 
             style={{ 
-              height: '76px', 
-              width: 'auto', 
+              width: '108px', 
+              height: 'auto', 
               objectFit: 'contain', 
               marginBottom: '16px' 
             }} 
