@@ -92,6 +92,23 @@ export function localClassify(std, requirement, scoreDetails = null) {
     };
   }
 
+  // Equipment, tooling, raw material, or packaging standards for this product (Allied / Related)
+  const isToolOrEquipment = ["knife", "knives", "mould", "moulds", "machine", "machinery", "equipment", "oven", "tray", "trays", "pan", "pans", "apparatus"].some(kw => title.includes(kw));
+  const isRawMaterial = ["flour", "maida", "wheat flour", "sugar", "yeast", "fat", "ingredient", "raw material"].some(kw => title.includes(kw));
+  const isPackaging = ["waxed paper", "packaging", "wrapping", "wrapper", "container", "box", "bag"].some(kw => title.includes(kw));
+
+  const queryIsFinishedProduct = !["knife", "knives", "mould", "flour", "paper", "packaging"].some(kw => product.includes(kw));
+
+  if (queryIsFinishedProduct && (isToolOrEquipment || isRawMaterial || isPackaging)) {
+    return {
+      classification: "RELATED_PRODUCT",
+      confidence: Math.min(score, 0.60),
+      reason: isToolOrEquipment
+        ? `Equipment / tooling standard associated with '${product}'.`
+        : (isRawMaterial ? `Raw material / ingredient standard for '${product}'.` : `Packaging specification for '${product}'.`)
+    };
+  }
+
   // High relevance specification match -> DIRECT_PRODUCT
   if (score >= 0.65) {
     return {
@@ -102,7 +119,7 @@ export function localClassify(std, requirement, scoreDetails = null) {
   }
 
   // Moderate relevance -> RELATED_PRODUCT
-  if (score >= 0.45) {
+  if (score >= 0.40) {
     return {
       classification: "RELATED_PRODUCT",
       confidence: score,
@@ -238,6 +255,7 @@ export function formatStandard(std, requirement, classification, confidence, exp
  */
 export async function runFastAnalysis(query, inputType = "product_description", enableBisDiscovery = true) {
   const t0 = Date.now();
+  console.log(`[Search] query="${query}"`);
 
   // Step 1: Requirement parsing
   const tReq0 = Date.now();
@@ -308,6 +326,7 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     }
   }
   const tRet = Date.now() - tRet0;
+  console.log(`[Local] candidates=${candidatePool.length}`);
 
   // Step 3: Candidate classification and initial filtering
   const tRank0 = Date.now();
@@ -381,8 +400,8 @@ export async function runFastAnalysis(query, inputType = "product_description", 
 
       if (bisHealth.status === "available") {
         try {
-          // Pass the expanded queries list so bisScraper tries them sequentially with search-engine depth
-          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 20, 20000);
+          // Pass the expanded queries list with bounded timeout of 8000ms
+          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 15, 8000);
           bisCandidatesFound = liveCandidates.length;
 
           if (liveCandidates.length > 0) {
@@ -420,7 +439,7 @@ export async function runFastAnalysis(query, inputType = "product_description", 
             bisStatus = "searched_no_results";
           }
         } catch (err) {
-          console.error("[Recommendation] BIS live discovery error:", err.message);
+          console.error("[BIS] timeout after 8000ms:", err.message);
           bisStatus = "error";
           bisReason = "bis_discovery_failed";
         }
@@ -430,6 +449,11 @@ export async function runFastAnalysis(query, inputType = "product_description", 
       }
     }
   }
+
+  const relatedCount = Object.values(alliedStandards).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+  console.log(`[Rank] primary=${primaryStandards.length}`);
+  console.log(`[Rank] related=${relatedCount}`);
+  console.log(`[Search] completed in ${Date.now() - t0}ms`);
 
   const tBis = Date.now() - tBis0;
   const tRank = Date.now() - tRank0;

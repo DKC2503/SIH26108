@@ -85,25 +85,25 @@ export default function SystemStatusModal({
         style={{
           width: '100%',
           maxWidth: '560px',
-          background: 'var(--bg-surface)',
+          background: '#FFFFFF',
           border: '1px solid var(--border-medium)',
           borderRadius: '8px',
           overflow: 'hidden',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+          boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
         }}
       >
         {/* Modal Header */}
         <div style={{
           padding: '16px 20px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--bg-surface-elevated)',
+          background: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Activity size={18} color="var(--accent-gold-light)" />
-            <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#FFFFFF' }}>
+            <Activity size={18} color="var(--primary-blue)" />
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)' }}>
               System Health & Service Architecture
             </h3>
           </div>
@@ -116,9 +116,9 @@ export default function SystemStatusModal({
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '20px' }}>
+        <div style={{ padding: '20px', background: '#F8FAFC' }}>
           <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
-            BISense employs high-availability zero-dependency fallbacks. Even when external cloud APIs are offline, deterministic local intelligence handles procurement queries seamlessly.
+            ISRA employs high-availability zero-dependency fallbacks. Even when external cloud APIs are offline, deterministic local intelligence handles procurement queries seamlessly.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -128,7 +128,7 @@ export default function SystemStatusModal({
                 <div
                   key={comp.id}
                   style={{
-                    background: 'var(--bg-app)',
+                    background: '#FFFFFF',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '6px',
                     padding: '12px 14px',
@@ -153,7 +153,7 @@ export default function SystemStatusModal({
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
                         {comp.title}
                       </span>
                       <span className={`badge ${comp.isOk ? 'badge-verified' : 'badge-warning'}`}>
@@ -175,13 +175,13 @@ export default function SystemStatusModal({
         <div style={{
           padding: '12px 20px',
           borderTop: '1px solid var(--border-subtle)',
-          background: 'var(--bg-surface-elevated)',
+          background: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            SIH 2026 Engine • Node.js Enterprise Platform
+            ISRA Engine • Indian Standards Retrieval Architecture
           </span>
 
           <button

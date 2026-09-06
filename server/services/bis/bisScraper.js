@@ -108,64 +108,73 @@ const OVERLY_BROAD_WORDS = new Set([
  * Scrape BIS Standards Portal for a keyword or candidate queries.
  * Falls back across candidate query terms while preserving product meaning.
 /**
- * Helper to extract field from standard detail page text
+ * Helper to extract fields from standard detail page text
  */
 export function extractDetailFields(pageText) {
   if (!pageText) return {};
   const lines = pageText.split('\n').map(s => s.trim()).filter(Boolean);
 
   const getVal = (prefix) => {
-    const line = lines.find(l => l.toLowerCase().startsWith(prefix.toLowerCase()));
-    if (!line) return null;
-    let val = line.slice(prefix.length).replace(/^[\s:]+/, '').trim();
-    if (!val || val.toLowerCase() === 'n/a' || val.toLowerCase() === 'none') return null;
-    return val;
+    const idx = lines.findIndex(l => {
+      const clean = l.replace(/\s+/g, ' ').toLowerCase();
+      return clean.startsWith(prefix.toLowerCase()) || clean === prefix.toLowerCase() + ' :';
+    });
+    if (idx === -1) return null;
+    const line = lines[idx];
+    let afterColon = line.split(':').slice(1).join(':').trim();
+    if (afterColon && afterColon.toLowerCase() !== 'n/a' && afterColon.toLowerCase() !== 'none') {
+      return afterColon;
+    }
+    if (idx + 1 < lines.length) {
+      const nextLine = lines[idx + 1].trim();
+      if (!nextLine.includes(':') && nextLine.toLowerCase() !== 'n/a' && nextLine.toLowerCase() !== 'none') {
+        return nextLine;
+      }
+    }
+    return null;
   };
 
-  const getRowVal = (prefix) => {
-    const row = lines.find(l => l.toLowerCase().includes(prefix.toLowerCase() + ' :'));
-    if (!row) return null;
-    const parts = row.split(':');
-    if (parts.length < 2) return null;
-    const val = parts.slice(1).join(':').trim();
-    if (!val || val.toLowerCase() === 'n/a' || val.toLowerCase() === 'none') return null;
-    return val;
-  };
-
-  const cert = getVal('Certification') || getRowVal('Certification');
-  const isMandatory = cert ? (cert.toLowerCase().includes('mandatory') || cert.toLowerCase().includes('isi mark') || cert.toLowerCase().includes('crs') || cert.toLowerCase().includes('qco')) : null;
+  const cert = getVal('Certification');
+  let certObj = null;
+  if (cert && cert.toLowerCase() !== 'n/a' && cert.toLowerCase() !== 'none') {
+    const isMandatory = cert.toLowerCase().includes('mandatory') ||
+      cert.toLowerCase().includes('isi mark') ||
+      cert.toLowerCase().includes('crs') ||
+      cert.toLowerCase().includes('qco');
+    certObj = { status: cert, mandatory: isMandatory };
+  }
 
   return {
-    reviewed_in: getVal('Reviewed In') || getRowVal('Reviewed In'),
-    department: getVal('Department') || getRowVal('Department'),
-    technical_committee: getVal('Technical Committee') || getRowVal('Technical Committee'),
-    type_of_standard: getVal('Type of Standard') || getRowVal('Type of Standard'),
-    certification: cert ? { status: cert, mandatory: isMandatory } : null,
-    superseding_is: getVal('Superseding IS') || getRowVal('Superseding IS'),
-    degree_of_equivalence: getVal('Degree of Equivalence') || getRowVal('Degree of Equivalence'),
-    number_of_revisions: getVal('Number of Revisions') || getRowVal('Number of Revisions'),
-    number_of_amendments: getVal('Number of Amendments') || getRowVal('Number of Amendments'),
-    reaffirmation_year: getVal('Reaffirmation Year') || getRowVal('Reaffirmation Year'),
-    relevant_ministries: getVal('Relevant Ministries') || getRowVal('Relevant Ministries'),
-    short_title: getVal("Short Common Man's Title") || getRowVal("Short Common Man's Title"),
-    group: getVal('Group') || getRowVal('Group'),
-    sub_group: getVal('Sub-Group') || getRowVal('Sub-Group'),
-    sub_sub_group: getVal('Sub Sub-Group') || getRowVal('Sub Sub-Group'),
-    ics_code: getVal('ICS Code') || getRowVal('ICS Code')
+    reviewed_in: getVal('Reviewed In'),
+    department: getVal('Department'),
+    technical_committee: getVal('Technical Committee'),
+    type_of_standard: getVal('Type of Standard'),
+    certification: certObj,
+    superseding_is: getVal('Superseding IS'),
+    degree_of_equivalence: getVal('Degree of Equivalence'),
+    number_of_revisions: getVal('Number of Revisions'),
+    number_of_amendments: getVal('Number of Amendments'),
+    reaffirmation_year: getVal('Reaffirmation Year'),
+    language: getVal('Language'),
+    member_secretary: getVal('Member Secretary'),
+    relevant_ministries: getVal('Relevant Ministries'),
+    short_title: getVal("Short Common Man's Title"),
+    group: getVal('Group'),
+    sub_group: getVal('Sub-Group'),
+    sub_sub_group: getVal('Sub Sub-Group'),
+    ics_code: getVal('ICS Code')
   };
 }
 
 /**
  * Scrape BIS Standards Portal for a keyword or candidate queries.
- * Falls back across candidate query terms while preserving product meaning.
  * @param {string|string[]} queryInput - Single keyword or array of candidate query terms
  * @param {number} limit - Maximum number of standards to return
- * @param {number} timeoutMs - Timeout per request in milliseconds
+ * @param {number} timeoutMs - Timeout per request in milliseconds (capped at 8000ms)
  */
-export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000) {
+export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000) {
   if (!queryInput) return [];
 
-  // Assemble list of search terms
   const searchTerms = [];
   const addTerm = (t) => {
     if (!t || typeof t !== 'string') return;
@@ -183,20 +192,10 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
 
   if (searchTerms.length === 0) return [];
   const primaryTerm = searchTerms[0];
-  console.log(`[BIS] Starting live discovery for: '${primaryTerm}' (candidate queries: ${JSON.stringify(searchTerms)})`);
+  console.log(`[BIS] search started query="${primaryTerm}"`);
 
-  // Also add derived 2-word combinations if primary query is longer
-  const words = primaryTerm.split(/\s+/).filter(w => w.length > 2);
-  if (words.length > 2) {
-    const firstTwo = words.slice(0, 2).join(" ");
-    if (!OVERLY_BROAD_WORDS.has(firstTwo.toLowerCase())) {
-      addTerm(firstTwo);
-    }
-    const lastTwo = words.slice(-2).join(" ");
-    if (!OVERLY_BROAD_WORDS.has(lastTwo.toLowerCase())) {
-      addTerm(lastTwo);
-    }
-  }
+  const tStart = Date.now();
+  const maxBudgetMs = 10000; // Strictly bound total live BIS budget to 10 seconds
 
   let browser = null;
   const results = [];
@@ -210,34 +209,50 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
     });
 
     const page = await context.newPage();
-    page.setDefaultTimeout(timeoutMs);
+    page.setDefaultTimeout(Math.min(timeoutMs, 8000));
 
     for (const term of searchTerms) {
-      if (results.length >= limit) break;
+      if (results.length >= limit || (Date.now() - tStart) > (maxBudgetMs - 3000)) break;
 
       try {
-        // Strategy A: Try official website homepage input '#isSearch' (produces official standard-details links)
-        await page.goto(`${BIS_BASE_URL}/website`, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-        await page.waitForSelector('#isSearch', { timeout: 8000 });
+        await page.goto(`${BIS_BASE_URL}/website`, { waitUntil: 'domcontentloaded', timeout: 7000 });
+        await page.waitForSelector('#isSearch', { timeout: 6000 });
         await page.fill('#isSearch', term);
         await page.keyboard.press('Enter');
 
-        // Wait for results to render
+        // Wait for search result listings to populate
         try {
-          await page.waitForSelector('a[href*="standard-details"]', { timeout: 6000 });
+          await page.waitForSelector('a[href*="standard-details"]', { timeout: 4500 });
         } catch (_) {}
 
-        const detailLinks = await page.evaluate(() => {
+        const extractedListings = await page.evaluate(() => {
+          const listings = Array.from(document.querySelectorAll('.search__listing'));
+          if (listings.length > 0) {
+            return listings.map(l => {
+              const a = l.querySelector('a[href*="standard-details"]');
+              const p = l.querySelector('p');
+              return {
+                isText: a ? a.innerText.trim() : '',
+                href: a ? a.href : '',
+                titleText: p ? p.innerText.trim() : ''
+              };
+            }).filter(item => item.isText.length > 2 && item.href);
+          }
+
+          // Fallback if class changes
           const anchors = Array.from(document.querySelectorAll('a[href*="standard-details"]'));
-          return anchors.map(a => ({
-            isText: a.innerText.trim(),
-            href: a.href,
-            parentText: a.closest('tr, li, .card, div')?.innerText?.trim() || ''
-          })).filter(item => item.isText.length > 2);
+          return anchors.map(a => {
+            const p = a.closest('tr, li, .card, div')?.querySelector('p');
+            return {
+              isText: a.innerText.trim(),
+              href: a.href,
+              titleText: p ? p.innerText.trim() : ''
+            };
+          }).filter(item => item.isText.length > 2 && item.href);
         });
 
-        if (detailLinks && detailLinks.length > 0) {
-          for (const item of detailLinks) {
+        if (extractedListings && extractedListings.length > 0) {
+          for (const item of extractedListings) {
             if (results.length >= limit) break;
             const isNum = extractIsNumberFromText(item.isText) || extractIsNumberFromText(item.href);
             if (!isNum) continue;
@@ -246,14 +261,18 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
             if (!seen.has(key)) {
               seen.add(key);
 
-              // Verify URL is genuine standard-details link
+              // Validate URL domain and structure
               const validUrl = (item.href && item.href.startsWith(`${BIS_BASE_URL}/website/standard-details`))
                 ? item.href
                 : null;
 
+              const title = item.titleText && item.titleText.length > 3
+                ? item.titleText
+                : (item.isText !== isNum && item.isText.length > 4 ? item.isText : `Indian Standard ${isNum}`);
+
               results.push({
                 is_number: isNum,
-                title: item.isText !== isNum && item.isText.length > 4 ? item.isText : `Indian Standard ${isNum}`,
+                title: title,
                 detail_url: validUrl,
                 official_bis_url: validUrl,
                 bis_status: "Active",
@@ -262,67 +281,10 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
                 verification_source: "official_bis_live",
                 data_source: "BIS_LIVE",
                 search_term: term,
-                scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal for query '${primaryTerm}'.`,
+                scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal.`,
                 certification: null
               });
             }
-          }
-        }
-
-        // If strategy A returned candidates, stop querying fallback terms
-        if (results.length > 0) break;
-
-        // Strategy B: Fallback to know-your-standards search page
-        const encoded = encodeURIComponent(term);
-        const searchUrl = `${BIS_SEARCH_URL}?searchTerm=${encoded}`;
-        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
-
-        try {
-          await page.waitForSelector('.search__listing', { timeout: 4000 });
-        } catch (_) {}
-
-        const candidates = await page.evaluate(() => {
-          const listings = Array.from(document.querySelectorAll('.search__listing'));
-          return listings.map(listing => {
-            const anchor = listing.querySelector('h2 a') || listing.querySelector('a');
-            const href = anchor ? anchor.href : '';
-            const lines = listing.innerText.trim().split('\n').map(s => s.trim()).filter(Boolean);
-            const rawHeader = anchor ? anchor.innerText.trim() : (lines[0] || '');
-            const title = lines.length > 1 ? lines[1] : rawHeader;
-            const publishedLine = lines.find(l => l.startsWith('Published In:')) || '';
-            const publishedYear = publishedLine.replace('Published In:', '').trim();
-
-            return { rawHeader, title, href, publishedYear };
-          });
-        });
-
-        for (const c of candidates) {
-          if (results.length >= limit) break;
-          const isNum = extractIsNumberFromText(c.rawHeader) || extractIsNumberFromText(c.title);
-          if (!isNum) continue;
-
-          const key = isNum.toUpperCase();
-          if (!seen.has(key)) {
-            seen.add(key);
-            // CRITICAL: Ensure URL is not a fake search URL
-            const isStandardDetail = c.href && c.href.includes('/standard-details');
-            const officialUrl = isStandardDetail ? c.href : null;
-
-            results.push({
-              is_number: isNum,
-              title: c.title !== c.rawHeader && c.title.length > 3 ? c.title : `Indian Standard ${isNum}`,
-              detail_url: officialUrl,
-              official_bis_url: officialUrl,
-              bis_status: "Active",
-              status: "Active",
-              category: "BIS Portal Discovered",
-              verification_source: "official_bis_live",
-              data_source: "BIS_LIVE",
-              search_term: term,
-              published_year: c.publishedYear || null,
-              scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal for query '${primaryTerm}'.`,
-              certification: null
-            });
           }
         }
 
@@ -332,13 +294,25 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
       }
     }
 
-    // Step 2: Enrich candidate standards with full details from actual detail page
-    // Enrich top results (up to 8) to maintain high responsiveness
-    const toEnrich = results.slice(0, Math.min(results.length, 8));
+    console.log(`[BIS] candidates=${results.length}`);
+
+    // Enrich top candidates within remaining time budget
+    const toEnrich = results.slice(0, Math.min(results.length, 5));
     for (const res of toEnrich) {
+      if ((Date.now() - tStart) > (maxBudgetMs - 2000)) {
+        console.log(`[BIS] detail enrichment budget reached, stopping enrichment`);
+        break;
+      }
+
       if (res.official_bis_url) {
+        console.log(`[BIS] enriching ${res.is_number}`);
         try {
-          await page.goto(res.official_bis_url, { waitUntil: 'domcontentloaded', timeout: 8000 });
+          await page.goto(res.official_bis_url, { waitUntil: 'domcontentloaded', timeout: 4000 });
+          // Give brief moment for dynamic fields to render
+          try {
+            await page.waitForSelector('text=Department:', { timeout: 2500 });
+          } catch (_) {}
+
           const pageText = await page.evaluate(() => document.body.innerText);
           const fields = extractDetailFields(pageText);
 
@@ -352,18 +326,36 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 25000
           if (fields.number_of_revisions) res.number_of_revisions = fields.number_of_revisions;
           if (fields.number_of_amendments) res.number_of_amendments = fields.number_of_amendments;
           if (fields.reaffirmation_year) res.reaffirmation_year = fields.reaffirmation_year;
+          if (fields.language) res.language = fields.language;
+          if (fields.member_secretary) res.member_secretary = fields.member_secretary;
           if (fields.relevant_ministries) res.relevant_ministries = fields.relevant_ministries;
           if (fields.ics_code) res.ics_code = fields.ics_code;
           if (fields.short_title && (!res.title || res.title.startsWith('Indian Standard'))) {
             res.title = fields.short_title;
           }
+
+          // Extract verified referenced standard links present on the page
+          const refAnchors = await page.evaluate(() => {
+            const anchors = Array.from(document.querySelectorAll('a[href*="standard-details"]'));
+            return anchors.map(a => ({
+              text: a.innerText.trim(),
+              href: a.href
+            })).filter(a => a.text && a.href && a.href.startsWith('https://standards.bis.gov.in/website/standard-details'));
+          });
+
+          if (refAnchors.length > 0) {
+            res.referenced_bis_links = refAnchors;
+          }
+
+          console.log(`[BIS] detail validated ${res.is_number}`);
         } catch (enrichErr) {
           console.warn(`[BIS] Could not enrich ${res.is_number}: ${enrichErr.message}`);
         }
       }
     }
 
-    console.log(`[BIS] Live discovery finished: found ${results.length} standard(s) for '${primaryTerm}'`);
+    const elapsed = Date.now() - tStart;
+    console.log(`[Search] BIS search completed in ${elapsed}ms`);
     return results;
   } catch (err) {
     console.error(`[BIS] Discovery failed: ${err.message}`);

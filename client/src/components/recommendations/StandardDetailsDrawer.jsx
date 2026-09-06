@@ -30,6 +30,17 @@ export default function StandardDetailsDrawer({
   const officialBisUrl = standard.official_bis_url || (standard.detail_url && standard.detail_url.includes('/standard-details') ? standard.detail_url : null);
   const cert = standard.certification;
   const lifecycle = standard.lifecycle || {};
+  const verifiedLinks = Array.isArray(standard.referenced_bis_links) ? standard.referenced_bis_links : [];
+
+  const findVerifiedBisUrl = (refText) => {
+    if (!refText || verifiedLinks.length === 0) return null;
+    const cleanRef = String(refText).replace(/\s+/g, ' ').trim().toLowerCase();
+    const found = verifiedLinks.find(v => {
+      const vNum = (v.standard_number || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      return vNum && (vNum.includes(cleanRef) || cleanRef.includes(vNum));
+    });
+    return (found?.detail_url && found.detail_url.includes('/standard-details')) ? found.detail_url : null;
+  };
 
   const tabs = [
     { id: 'basic', label: 'Basic Details', icon: FileText },
@@ -288,16 +299,43 @@ export default function StandardDetailsDrawer({
                 </div>
                 {standard.normative_references?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {standard.normative_references.map((ref, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => onSelectStandard && onSelectStandard(ref)}
-                        className="btn btn-secondary btn-sm is-code"
-                      >
-                        <span>{ref}</span>
-                        <ExternalLink size={12} />
-                      </button>
-                    ))}
+                    {standard.normative_references.map((ref, idx) => {
+                      const verifiedUrl = findVerifiedBisUrl(ref);
+                      return (
+                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <button
+                            type="button"
+                            onClick={() => onSelectStandard && onSelectStandard(ref)}
+                            className="btn btn-secondary btn-sm is-code"
+                            style={{ border: 'none', borderRadius: 0, padding: '4px 8px' }}
+                            title="Search this standard in ISRA"
+                          >
+                            <span>{ref}</span>
+                          </button>
+                          {verifiedUrl && (
+                            <a
+                              href={verifiedUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '4px 8px',
+                                background: '#EFF6FF',
+                                borderLeft: '1px solid var(--border-subtle)',
+                                color: 'var(--primary-blue)',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                textDecoration: 'none'
+                              }}
+                              title="Open verified standard details on official BIS portal"
+                            >
+                              <span>BIS ↗</span>
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>
@@ -305,6 +343,56 @@ export default function StandardDetailsDrawer({
                   </div>
                 )}
               </div>
+
+              {/* Direct BIS Portal Reference Links (Extracted from Live Page) */}
+              {verifiedLinks.length > 0 && (
+                <div style={{
+                  padding: '16px',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
+                    Verified Referenced Standards on BIS Portal ({verifiedLinks.length})
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {verifiedLinks.map((item, idx) => (
+                      <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectStandard && onSelectStandard(item.standard_number)}
+                          className="btn btn-secondary btn-sm is-code"
+                          style={{ border: 'none', borderRadius: 0, padding: '4px 8px' }}
+                          title="Search this standard in ISRA"
+                        >
+                          <span>{item.standard_number}</span>
+                        </button>
+                        {item.detail_url && item.detail_url.includes('/standard-details') && (
+                          <a
+                            href={item.detail_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 8px',
+                              background: '#EFF6FF',
+                              borderLeft: '1px solid var(--border-subtle)',
+                              color: 'var(--primary-blue)',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              textDecoration: 'none'
+                            }}
+                            title="Open on official BIS portal"
+                          >
+                            <span>BIS ↗</span>
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{
                 padding: '16px',
@@ -317,15 +405,43 @@ export default function StandardDetailsDrawer({
                 </div>
                 {standard.test_methods?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {standard.test_methods.map((ref, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => onSelectStandard && onSelectStandard(ref)}
-                        className="btn btn-secondary btn-sm is-code"
-                      >
-                        <span>{ref}</span>
-                      </button>
-                    ))}
+                    {standard.test_methods.map((ref, idx) => {
+                      const verifiedUrl = findVerifiedBisUrl(ref);
+                      return (
+                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <button
+                            type="button"
+                            onClick={() => onSelectStandard && onSelectStandard(ref)}
+                            className="btn btn-secondary btn-sm is-code"
+                            style={{ border: 'none', borderRadius: 0, padding: '4px 8px' }}
+                            title="Search this standard in ISRA"
+                          >
+                            <span>{ref}</span>
+                          </button>
+                          {verifiedUrl && (
+                            <a
+                              href={verifiedUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                padding: '4px 8px',
+                                background: '#EFF6FF',
+                                borderLeft: '1px solid var(--border-subtle)',
+                                color: 'var(--primary-blue)',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                textDecoration: 'none'
+                              }}
+                              title="Open on official BIS portal"
+                            >
+                              <span>BIS ↗</span>
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>

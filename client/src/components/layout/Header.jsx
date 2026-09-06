@@ -49,44 +49,29 @@ export default function Header({
         style={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: '10px', 
+          gap: '12px', 
           cursor: 'pointer',
           userSelect: 'none'
         }}
-        title="BISense Home"
+        title="ISRA Home"
       >
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '6px',
-          background: 'linear-gradient(135deg, #1D4ED8 0%, #0F172A 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <ShieldCheck size={18} color="#FFFFFF" strokeWidth={2.3} />
-        </div>
+        <img 
+          src="/logo.png" 
+          alt="ISRA Logo" 
+          style={{ 
+            height: '32px', 
+            width: 'auto', 
+            objectFit: 'contain' 
+          }} 
+        />
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '17px', fontWeight: '700', letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
-              BISense
-            </span>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: '700',
-              padding: '1px 5px',
-              borderRadius: '3px',
-              background: '#EFF6FF',
-              color: 'var(--primary-blue)',
-              border: '1px solid #BFDBFE',
-              letterSpacing: '0.04em'
-            }}>
-              SIH 2026
+            <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
+              ISRA
             </span>
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1 }}>
-            Indian Standards Intelligence
+            Indian Standards Retrieval Architecture
           </div>
         </div>
       </div>

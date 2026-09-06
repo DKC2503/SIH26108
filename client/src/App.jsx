@@ -149,7 +149,7 @@ export default function App() {
         color: 'var(--text-muted)'
       }}>
         <div>
-          <span>BISense • Smart India Hackathon 2026 (Problem Statement: 26108)</span>
+          <span>ISRA • Indian Standards Retrieval Architecture</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {comparedStandards.length > 0 && (

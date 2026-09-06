@@ -1,5 +1,5 @@
 /**
- * BISense API Service
+ * ISRA API Service
  * Encapsulates backend communication with Express REST API.
  */
 

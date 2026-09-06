@@ -104,7 +104,7 @@ export default function RecommendationCard({
           )}
 
           {!isBisLive && !isLocalVerified && isMongoCached && (
-            <span className="badge badge-blue" title="Cached in BISense repository">
+            <span className="badge badge-blue" title="Cached in ISRA repository">
               MongoDB Cached
             </span>
           )}

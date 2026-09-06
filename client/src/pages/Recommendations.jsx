@@ -166,38 +166,30 @@ export default function Recommendations({
         justifyContent: 'center',
         padding: '20px 20px 60px 20px'
       }}>
-        {/* Centered Brand Title */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '12px',
+        {/* Centered Brand Title with Official Logo */}
+        <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img 
+            src="/logo.png" 
+            alt="ISRA Logo" 
+            style={{ 
+              height: '76px', 
+              width: 'auto', 
+              objectFit: 'contain', 
+              marginBottom: '16px' 
+            }} 
+          />
+          <h1 style={{
+            fontSize: '40px',
+            fontWeight: 800,
+            letterSpacing: '-0.03em',
+            color: 'var(--text-main)',
+            lineHeight: 1,
             marginBottom: '8px'
           }}>
-            <h1 style={{
-              fontSize: '44px',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              color: 'var(--text-main)',
-              lineHeight: 1
-            }}>
-              BISense
-            </h1>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '4px',
-              background: '#EFF6FF',
-              color: 'var(--primary-blue)',
-              border: '1px solid #BFDBFE',
-              letterSpacing: '0.04em'
-            }}>
-              SIH 2026
-            </span>
-          </div>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-            AI Procurement Standards Assistant • Indian Standards Intelligence
+            ISRA
+          </h1>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Indian Standards Retrieval Architecture
           </p>
         </div>
 
@@ -209,7 +201,7 @@ export default function Recommendations({
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search Indian Standards by product, requirement, or IS number..."
+              placeholder="Search Indian Standards (e.g., LED street lighting, Portland cement, IS 10322)..."
               autoFocus
             />
             {searchInput && (
@@ -448,10 +440,10 @@ export default function Recommendations({
         }}>
           <AlertCircle size={36} color="var(--status-gold)" style={{ margin: '0 auto 12px auto' }} />
           <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-            No Indian Standards Found
+            No Strong BIS Match Found
           </h3>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '480px', margin: '0 auto 16px auto' }}>
-            No matching standards were identified for "{requirement?.product || searchInput}". Try broader keywords, search directly by IS number, or check spelling.
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.5 }}>
+            No strong BIS match found for "{requirement?.product || searchInput}". Try searching with: a product name, an IS number, a technical description, or a material.
           </p>
           <button
             onClick={() => {

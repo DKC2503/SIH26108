@@ -216,10 +216,10 @@ export default function Sidebar({
         ) : (
           <div>
             <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              SIH 2026
+              ISRA Platform
             </div>
             <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-              Problem Statement 26108
+              Indian Standards Retrieval
             </div>
             <div style={{ fontSize: '9.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Ministry of Consumer Affairs / BIS
