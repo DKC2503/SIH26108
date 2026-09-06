@@ -5,15 +5,12 @@ import {
   ShieldCheck, 
   FileText, 
   CheckCircle, 
-  AlertCircle, 
-  Calendar, 
-  Building, 
   Layers, 
   BookOpen, 
-  Beaker, 
-  ShieldAlert, 
-  Award, 
-  History 
+  History,
+  Building,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 
 export default function StandardDetailsDrawer({ 
@@ -23,28 +20,45 @@ export default function StandardDetailsDrawer({
 }) {
   if (!standard) return null;
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('basic');
 
   const isNumber = standard.is_number || "IS Standard";
   const title = standard.title || "Indian Standard Specification";
   const status = standard.bis_status || standard.status || "Active";
   const isCurrent = status.toLowerCase() === 'active' || status.toLowerCase() === 'current';
-  const verification = standard.verification || {};
   const isBisLive = standard.verification_source === 'official_bis_live' || standard.data_source === 'BIS_LIVE';
-  const officialBisUrl = standard.official_bis_url || standard.detail_url || "";
-  const cert = standard.certification || {};
+  const officialBisUrl = standard.official_bis_url || (standard.detail_url && standard.detail_url.includes('/standard-details') ? standard.detail_url : null);
+  const cert = standard.certification;
+  const lifecycle = standard.lifecycle || {};
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: FileText },
-    { id: 'applicability', label: 'Applicability', icon: Layers },
-    { id: 'requirements', label: 'Requirements', icon: CheckCircle },
-    { id: 'references', label: 'References', icon: BookOpen },
-    { id: 'testing', label: 'Testing', icon: Beaker },
-    { id: 'safety', label: 'Safety', icon: ShieldAlert },
-    { id: 'certification', label: 'Certification', icon: Award },
-    { id: 'lifecycle', label: 'Lifecycle', icon: History },
-    { id: 'bis', label: 'BIS Information', icon: ExternalLink },
+    { id: 'basic', label: 'Basic Details', icon: FileText },
+    { id: 'classification', label: 'Classification', icon: Layers },
+    { id: 'certification', label: 'Certification', icon: ShieldCheck },
+    { id: 'lifecycle', label: 'Lifecycle & Amendments', icon: History },
+    { id: 'referred', label: 'Referred Standards', icon: BookOpen },
   ];
+
+  const renderField = (label, value) => {
+    return (
+      <div style={{
+        padding: '12px 16px',
+        background: '#FFFFFF',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: '6px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '3px'
+      }}>
+        <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          {label}
+        </div>
+        <div style={{ fontSize: '13.5px', color: value ? 'var(--text-main)' : 'var(--text-light)', fontWeight: value ? 500 : 400 }}>
+          {value || "Not available on BIS portal"}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="drawer-overlay" onClick={onClose}>
@@ -54,24 +68,24 @@ export default function StandardDetailsDrawer({
           width: '100%',
           maxWidth: '680px',
           height: '100%',
-          background: 'var(--bg-surface)',
+          background: '#FFFFFF',
           borderLeft: '1px solid var(--border-medium)',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
+          boxShadow: '-8px 0 32px rgba(15, 23, 42, 0.15)',
           overflow: 'hidden'
         }}
       >
         {/* Drawer Header */}
         <div style={{
-          padding: '20px 24px',
+          padding: '24px 28px 16px 28px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--bg-surface-elevated)'
+          background: '#FFFFFF'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span className="is-code" style={{ fontSize: '18px', color: '#FFFFFF' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                <span className="is-code" style={{ fontSize: '19px', color: 'var(--text-main)' }}>
                   {isNumber}
                 </span>
 
@@ -81,21 +95,18 @@ export default function StandardDetailsDrawer({
                   <span className="badge badge-warning">{status.toUpperCase()}</span>
                 )}
 
-                {isBisLive && (
+                {isBisLive ? (
                   <span className="badge badge-gold">LIVE BIS VERIFIED</span>
-                )}
-                {!isBisLive && (standard.verification_source === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE') && (
+                ) : (standard.verification_source === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE') ? (
                   <span className="badge badge-verified">LOCAL VERIFIED INDEX</span>
-                )}
-                {!isBisLive && (standard.verification_source === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE') && (
+                ) : (standard.verification_source === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE') ? (
                   <span className="badge badge-blue">MONGODB CACHED</span>
-                )}
-                {!isBisLive && standard.verification_source !== 'official_bis_cache' && standard.data_source !== 'LOCAL_KNOWLEDGE_BASE' && standard.verification_source !== 'mongodb_cache' && standard.data_source !== 'MONGODB_CACHE' && (
+                ) : (
                   <span className="badge badge-warning">UNVERIFIED</span>
                 )}
               </div>
 
-              <h2 style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.4 }}>
+              <h2 style={{ fontSize: '15px', color: 'var(--text-main)', fontWeight: 500, lineHeight: 1.45 }}>
                 {title}
               </h2>
             </div>
@@ -104,21 +115,25 @@ export default function StandardDetailsDrawer({
               onClick={onClose}
               style={{
                 padding: '6px',
-                borderRadius: '4px',
-                color: 'var(--text-secondary)',
-                background: 'rgba(255,255,255,0.05)'
+                borderRadius: '6px',
+                color: 'var(--text-muted)',
+                background: '#F1F5F9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* Navigation Tabs Bar */}
+          {/* Clean Light Tabs Bar */}
           <div style={{
             display: 'flex',
             gap: '6px',
             overflowX: 'auto',
-            marginTop: '16px',
+            marginTop: '18px',
+            borderBottom: '1px solid var(--border-subtle)',
             paddingBottom: '2px'
           }}>
             {tabs.map(t => {
@@ -132,17 +147,15 @@ export default function StandardDetailsDrawer({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
+                    padding: '8px 12px',
+                    borderBottom: isActive ? '2px solid var(--primary-blue)' : '2px solid transparent',
+                    fontSize: '13px',
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                    background: isActive ? 'var(--interactive-blue)' : 'rgba(255,255,255,0.03)',
-                    border: '1px solid ' + (isActive ? 'transparent' : 'var(--border-subtle)'),
+                    color: isActive ? 'var(--primary-blue)' : 'var(--text-muted)',
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  <Icon size={13} />
+                  <Icon size={14} />
                   <span>{t.label}</span>
                 </button>
               );
@@ -151,153 +164,135 @@ export default function StandardDetailsDrawer({
         </div>
 
         {/* Drawer Body Tabs Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-          {/* TAB 1: OVERVIEW */}
-          {activeTab === 'overview' && (
-            <div className="animate-fade-in">
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                  Standard Scope & Abstract
-                </h4>
-                <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                  {standard.scope || `This standard specifies requirements and methods of sampling and test for general procurement and quality verification for ${title}.`}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', background: '#F8FAFC' }}>
+          {/* TAB 1: BASIC DETAILS */}
+          {activeTab === 'basic' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {standard.scope && (
+                <div style={{
+                  padding: '16px',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Scope & Technical Description
+                  </div>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-main)', lineHeight: 1.6 }}>
+                    {standard.scope}
+                  </p>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {renderField("IS Number", isNumber)}
+                {renderField("Status", status)}
+                {renderField("Published / Reviewed Year", standard.reviewed_in || standard.published_year || lifecycle.reviewed_in)}
+                {renderField("Technical Department", standard.department)}
+                {renderField("Technical Committee", standard.technical_committee)}
+                {renderField("Type of Standard", standard.type_of_standard)}
+                {renderField("Degree of Equivalence", standard.degree_of_equivalence)}
+                {renderField("Reaffirmation Year", standard.reaffirmation_year || lifecycle.reaffirmation_year)}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: CLASSIFICATION */}
+          {activeTab === 'classification' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {renderField("Group", standard.group || standard.category)}
+                {renderField("Sub-Group", standard.sub_group || standard.sub_category)}
+                {renderField("Sub Sub-Group", standard.sub_sub_group)}
+                {renderField("ICS Code", standard.ics_code)}
+                {renderField("Relevant Ministry", standard.relevant_ministries)}
+                {renderField("Short Common Man's Title", standard.short_title || standard.title)}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CERTIFICATION */}
+          {activeTab === 'certification' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                padding: '20px',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  Official Conformity Assessment & Certification
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)' }}>
+                    {cert?.status ? cert.status : "Not available on BIS portal"}
+                  </span>
+                  {cert?.mandatory !== null && cert?.mandatory !== undefined && (
+                    <span className={`badge ${cert.mandatory ? 'badge-gold' : 'badge-neutral'}`}>
+                      {cert.mandatory ? 'MANDATORY (QCO / STATUTORY)' : 'VOLUNTARY'}
+                    </span>
+                  )}
+                </div>
+
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Under the Bureau of Indian Standards Act, Indian Standards are voluntary unless notified under a mandatory Quality Control Order (QCO) issued by the relevant Central Ministry.
                 </p>
               </div>
+            </div>
+          )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '20px' }}>
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>IS Number</div>
-                  <div className="is-code" style={{ fontSize: '14px', color: '#FFFFFF', marginTop: '2px' }}>{isNumber}</div>
-                </div>
-
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Lifecycle Status</div>
-                  <div style={{ fontSize: '14px', color: isCurrent ? 'var(--status-verified)' : 'var(--status-warning)', fontWeight: 600, marginTop: '2px' }}>
-                    {status}
-                  </div>
-                </div>
-
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Technical Department</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {standard.department || "Bureau of Indian Standards (BIS)"}
-                  </div>
-                </div>
-
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Technical Committee</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {standard.technical_committee || "Sectional Committee"}
-                  </div>
-                </div>
-
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Type of Standard</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {standard.type_of_standard || "Product Specification"}
-                  </div>
-                </div>
-
-                <div className="card-panel" style={{ padding: '12px' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Language</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>English / Bilingual</div>
-                </div>
+          {/* TAB 4: LIFECYCLE & AMENDMENTS */}
+          {activeTab === 'lifecycle' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {renderField("Current Status", status)}
+                {renderField("Number of Revisions", standard.number_of_revisions || lifecycle.number_of_revisions)}
+                {renderField("Number of Amendments", standard.number_of_amendments || lifecycle.number_of_amendments || (standard.amendments?.length > 0 ? String(standard.amendments.length) : null))}
+                {renderField("Superseding IS", standard.superseding_is || lifecycle.superseding_is)}
+                {renderField("Reaffirmation Year", standard.reaffirmation_year || lifecycle.reaffirmation_year)}
+                {renderField("Reviewed In", standard.reviewed_in || lifecycle.reviewed_in)}
               </div>
 
-              {standard.official_bis_url && (
-                <a
-                  href={standard.official_bis_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%' }}
-                >
-                  <span>Open Official Record on BIS Portal</span>
-                  <ExternalLink size={13} />
-                </a>
+              {standard.amendments && standard.amendments.length > 0 && (
+                <div style={{
+                  padding: '16px',
+                  background: '#FFFFFF',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                    Gazette Amendments & Addenda
+                  </div>
+                  <ul style={{ paddingLeft: '18px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {standard.amendments.map((am, i) => (
+                      <li key={i}>{typeof am === 'string' ? am : JSON.stringify(am)}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           )}
 
-          {/* TAB 2: APPLICABILITY */}
-          {activeTab === 'applicability' && (
-            <div className="animate-fade-in">
-              <div style={{ marginBottom: '18px' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                  Procurement Applicability
-                </h4>
-                <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                  {standard.structured_explanation?.applicability || `Directly applicable for public works, government procurement tenders, and technical compliance verification for ${title}.`}
-                </p>
-              </div>
-
-              <div style={{ marginBottom: '18px' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                  Recommended Procurement Checks
-                </h4>
-                <div style={{ background: 'var(--bg-app)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                  <ul style={{ paddingLeft: '18px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    <li>Ensure tender specifies conformity to latest revision ({isNumber}).</li>
-                    <li>Verify manufacturer holds valid BIS licence / ISI mark certificate.</li>
-                    <li>Mandate submission of test certificate from NABL or BIS recognized laboratory.</li>
-                    <li>Inspect sample testing protocols against referenced test method standards.</li>
-                  </ul>
+          {/* TAB 5: REFERRED STANDARDS */}
+          {activeTab === 'referred' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                padding: '16px',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
+                  Normative References & Allied Standards
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: REQUIREMENTS */}
-          {activeTab === 'requirements' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
-                Procurement Requirement Coverage
-              </h4>
-
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-medium)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '8px 4px' }}>Requirement Dimension</th>
-                    <th style={{ padding: '8px 4px', textAlign: 'right' }}>Coverage Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '10px 4px', color: 'var(--text-primary)' }}>Product Core Specifications</td>
-                    <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--status-verified)', fontWeight: 600 }}>Strong Coverage</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '10px 4px', color: 'var(--text-primary)' }}>Safety & Electrical Protection</td>
-                    <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--status-verified)', fontWeight: 600 }}>Strong Coverage</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '10px 4px', color: 'var(--text-primary)' }}>Sampling & Quality Inspection</td>
-                    <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--accent-gold-light)', fontWeight: 600 }}>Moderate Coverage</td>
-                  </tr>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                    <td style={{ padding: '10px 4px', color: 'var(--text-primary)' }}>Site-Specific Installation Conditions</td>
-                    <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--text-muted)', fontWeight: 500 }}>Allied Standard Needed</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* TAB 4: REFERENCES */}
-          {activeTab === 'references' && (
-            <div className="animate-fade-in">
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                  Normative References
-                </h4>
                 {standard.normative_references?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {standard.normative_references.map((ref, idx) => (
                       <button
                         key={idx}
                         onClick={() => onSelectStandard && onSelectStandard(ref)}
-                        className="btn btn-outline btn-sm is-code"
-                        style={{ fontSize: '12.5px' }}
+                        className="btn btn-secondary btn-sm is-code"
                       >
                         <span>{ref}</span>
                         <ExternalLink size={12} />
@@ -305,171 +300,74 @@ export default function StandardDetailsDrawer({
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    Referenced standards cited within the text of this specification.
+                  <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>
+                    Not available on BIS portal
                   </div>
                 )}
               </div>
 
-              <div>
-                <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                  Test Method Standards
-                </h4>
+              <div style={{
+                padding: '16px',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
+                  Sampling & Test Method Standards
+                </div>
                 {standard.test_methods?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {standard.test_methods.map((ref, idx) => (
                       <button
                         key={idx}
                         onClick={() => onSelectStandard && onSelectStandard(ref)}
-                        className="btn btn-outline btn-sm is-code"
-                        style={{ fontSize: '12.5px' }}
+                        className="btn btn-secondary btn-sm is-code"
                       >
                         <span>{ref}</span>
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    Test procedures defined in parent specification.
+                  <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>
+                    Not available on BIS portal
                   </div>
                 )}
               </div>
             </div>
           )}
+        </div>
 
-          {/* TAB 5: TESTING */}
-          {activeTab === 'testing' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                Testing & Inspection Provisions
-              </h4>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '14px' }}>
-                This Indian Standard specifies mechanical, electrical, and durability test methods to ensure compliance under Indian climatic and operational conditions.
-              </p>
-              <div style={{ background: 'var(--bg-app)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  Laboratory Acceptance Testing
-                </div>
-                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                  Mandatory routine testing and type tests must be executed in accordance with BIS Scheme of Inspection and Testing (SIT).
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Drawer Footer with Official BIS Button */}
+        <div style={{
+          padding: '18px 28px',
+          borderTop: '1px solid var(--border-subtle)',
+          background: '#FFFFFF',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <button 
+            onClick={onClose}
+            className="btn btn-secondary btn-sm"
+          >
+            Close
+          </button>
 
-          {/* TAB 6: SAFETY */}
-          {activeTab === 'safety' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                Safety & Compliance Guidelines
-              </h4>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '14px' }}>
-                Specifies occupational, electrical, and environmental safety precautions required during manufacturing, installation, and public deployment.
-              </p>
-              <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '14px', borderRadius: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--status-error)', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>
-                  <ShieldAlert size={16} />
-                  <span>Public Safety Directive</span>
-                </div>
-                <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                  Failure to comply with mandatory safety specifications in public infrastructure procurement may violate National Building Code (NBC) and Central Vigilance Commission (CVC) guidelines.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 7: CERTIFICATION */}
-          {activeTab === 'certification' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                Conformity Assessment & QCO Information
-              </h4>
-
-              <div className="card-panel" style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Certification Status:</span>
-                  <span className={`badge ${cert.mandatory ? 'badge-error' : 'badge-gold'}`}>
-                    {cert.mandatory ? 'COMPULSORY (QCO)' : 'VOLUNTARY (ISI OPTIONAL)'}
-                  </span>
-                </div>
-
-                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  Under the Bureau of Indian Standards Act, Indian Standards are voluntary by default unless notified under a mandatory Quality Control Order (QCO) issued by the relevant Central Ministry.
-                </div>
-              </div>
-
-              <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                <strong>Procurement Recommendation:</strong> Government buyers on the Government e-Marketplace (GeM) frequently mandate BIS certification as a quality filter even when statutory QCO notifications are voluntary.
-              </div>
-            </div>
-          )}
-
-          {/* TAB 8: LIFECYCLE */}
-          {activeTab === 'lifecycle' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '16px' }}>
-                Standard Revision Timeline
-              </h4>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', paddingLeft: '24px' }}>
-                <div style={{ position: 'absolute', top: '10px', bottom: '10px', left: '8px', width: '2px', background: 'var(--border-medium)' }} />
-
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--status-verified)' }} />
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Current Active Edition</div>
-                  <div className="is-code" style={{ fontSize: '12px', color: 'var(--status-verified)' }}>{isNumber}</div>
-                </div>
-
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '-20px', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: 'var(--text-muted)' }} />
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Periodic Review & Reaffirmation</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Confirmed active by BIS Technical Directorate</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 9: BIS INFORMATION */}
-          {activeTab === 'bis' && (
-            <div className="animate-fade-in">
-              <h4 style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                Official BIS Know Your Standards Portal
-              </h4>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-                The official BIS Portal exposes complete authentic standard documents, gazette notifications, testing/inspection schemes, manufacturer licences and certified laboratories.
-              </p>
-
-              {officialBisUrl ? (
-                <div style={{ background: 'var(--bg-app)', padding: '16px', borderRadius: '6px', border: '1px solid var(--border-subtle)', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>Canonical BIS URL:</div>
-                  <a 
-                    href={officialBisUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="is-code"
-                    style={{ fontSize: '12px', wordBreak: 'break-all', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <span>{officialBisUrl}</span>
-                    <ExternalLink size={13} />
-                  </a>
-                </div>
-              ) : (
-                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Direct URL lookup available on standards.bis.gov.in.
-                </div>
-              )}
-
-              <a
-                href={`https://standards.bis.gov.in/website/know-your-standards?searchTerm=${encodeURIComponent(isNumber)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-                style={{ width: '100%' }}
-              >
-                <span>Search {isNumber} on Official BIS Portal</span>
-                <ExternalLink size={14} />
-              </a>
-            </div>
+          {officialBisUrl ? (
+            <a
+              href={officialBisUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ padding: '9px 20px', fontWeight: 600 }}
+            >
+              <span>Open official BIS page</span>
+              <ExternalLink size={15} />
+            </a>
+          ) : (
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              Official BIS detail page unavailable
+            </span>
           )}
         </div>
       </div>

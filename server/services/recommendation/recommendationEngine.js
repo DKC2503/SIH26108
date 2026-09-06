@@ -189,11 +189,11 @@ export function formatStandard(std, requirement, classification, confidence, exp
     related_standards: std.related_standards || [],
     cross_references: std.cross_references || [],
     data_source: std.data_source || (std.verification_source === "official_bis_live" ? "BIS_LIVE" : "BIS"),
-    certification: {
-      status: typeof cert === 'object' ? (cert.status || cert.type || "Voluntary") : String(cert),
-      mandatory: cert.mandatory || false,
+    certification: cert ? {
+      status: typeof cert === 'object' ? (cert.status || cert.type || null) : String(cert),
+      mandatory: typeof cert === 'object' ? (cert.mandatory ?? null) : null,
       scheme: std.certification_scheme || null
-    },
+    } : null,
     lifecycle: {
       status: std.bis_status || std.status || "Active",
       number_of_revisions: std.number_of_revisions || null,
@@ -208,7 +208,7 @@ export function formatStandard(std, requirement, classification, confidence, exp
     technical_committee: std.technical_committee || null,
     type_of_standard: std.type_of_standard || null,
     degree_of_equivalence: std.degree_of_equivalence || null,
-    official_bis_url: std.official_bis_url || std.detail_url || "",
+    official_bis_url: (std.official_bis_url && std.official_bis_url.includes('/standard-details')) ? std.official_bis_url : (std.detail_url && std.detail_url.includes('/standard-details') ? std.detail_url : null),
     last_verified: std.last_verified || "",
     verification_source: std.verification_source || (verification && verification.source) || "official_bis_cache",
     completeness_level: getCompletenessLevel(std)
@@ -381,8 +381,8 @@ export async function runFastAnalysis(query, inputType = "product_description", 
 
       if (bisHealth.status === "available") {
         try {
-          // Pass the expanded queries list so bisScraper tries them sequentially
-          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 6, 12000);
+          // Pass the expanded queries list so bisScraper tries them sequentially with search-engine depth
+          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 20, 20000);
           bisCandidatesFound = liveCandidates.length;
 
           if (liveCandidates.length > 0) {

@@ -1,51 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/layout/Header';
-import Sidebar from './components/layout/Sidebar';
 import Recommendations from './pages/Recommendations';
-import StandardsExplorer from './pages/StandardsExplorer';
-import TenderAnalysis from './pages/TenderAnalysis';
-import History from './pages/History';
 import SystemStatusModal from './components/status/SystemStatusModal';
 import StandardsCompareModal from './components/compare/StandardsCompareModal';
 import { checkSystemHealth, analyzeRequirement } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('recommendations'); // 'recommendations', 'tender', 'explorer', 'history'
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [systemStatus, setSystemStatus] = useState(null);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
-  // Recommendations state
+  // Recommendations / Search state
   const [analysisData, setAnalysisData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeStandard, setActiveStandard] = useState(null);
   const [comparedStandards, setComparedStandards] = useState([]);
   const [savedStandards, setSavedStandards] = useState([]);
 
-  // Session history (stored in localStorage)
-  const [historyItems, setHistoryItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('bisense_history');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Hidden global file input for header "+ Add document" button
+  const headerFileInputRef = useRef(null);
 
   // Initial health check
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 45000);
+    const interval = setInterval(fetchHealth, 60000);
     return () => clearInterval(interval);
   }, []);
-
-  // Save history to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('bisense_history', JSON.stringify(historyItems));
-    } catch (_) {}
-  }, [historyItems]);
 
   const fetchHealth = async () => {
     const data = await checkSystemHealth();
@@ -54,29 +35,18 @@ export default function App() {
 
   const handleAnalyze = async (query, inputType = 'product_description', enableBis = true) => {
     setIsLoading(true);
+    if (typeof query === 'string') {
+      setSearchQuery(query);
+    } else if (query?.name) {
+      setSearchQuery(query.name);
+    }
+    
     try {
       const result = await analyzeRequirement(query, inputType, enableBis);
       setAnalysisData(result);
-      setActiveTab('recommendations');
-
-      // Log into history
-      const totalFound = (result.primary_standards?.length || 0) + 
-        Object.values(result.allied_standards || {}).reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0);
-
-      const historyRecord = {
-        id: Date.now(),
-        query: typeof query === 'string' ? query : query.name || "Tender Document",
-        product: result.requirement?.product || "Procurement Item",
-        standardsCount: totalFound,
-        status: result.status || "completed",
-        timestamp: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        data: result
-      };
-
-      setHistoryItems(prev => [historyRecord, ...prev.slice(0, 19)]);
     } catch (err) {
-      console.error("Analysis execution error:", err);
-      alert(`Analysis failed: ${err.message}`);
+      console.error("Search execution error:", err);
+      alert(`Search failed: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +55,20 @@ export default function App() {
   const handleClearAnalysis = () => {
     setAnalysisData(null);
     setActiveStandard(null);
+    setSearchQuery('');
+  };
+
+  const handleHeaderUploadClick = () => {
+    if (headerFileInputRef.current) {
+      headerFileInputRef.current.click();
+    }
+  };
+
+  const handleHeaderFileSelected = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      handleAnalyze(file, 'tender_document', true);
+    }
   };
 
   const handleToggleCompare = (standard) => {
@@ -111,75 +95,87 @@ export default function App() {
     });
   };
 
-  const handleOpenHistoryItem = (item) => {
-    if (item.data) {
-      setAnalysisData(item.data);
-      setActiveTab('recommendations');
-    } else if (item.query) {
-      handleAnalyze(item.query, 'product_description', true);
-    }
-  };
-
   return (
-    <div className="app-container">
-      {/* Sidebar Navigation */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-        onOpenStatusModal={() => setIsStatusOpen(true)}
-        onOpenCompareModal={() => setIsCompareOpen(true)}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-body)', display: 'flex', flexDirection: 'column' }}>
+      {/* Hidden File Input for Header "+ Add document" */}
+      <input
+        ref={headerFileInputRef}
+        type="file"
+        accept=".pdf,.docx,.txt"
+        onChange={handleHeaderFileSelected}
+        style={{ display: 'none' }}
       />
 
-      {/* Main Workspace Layout */}
-      <div className="main-content">
-        {/* Global Application Header */}
-        <Header
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          systemStatus={systemStatus}
-          onOpenStatusModal={() => setIsStatusOpen(true)}
+      {/* Global Minimal Search Engine Header */}
+      <Header
+        query={searchQuery}
+        setQuery={setSearchQuery}
+        onSearch={() => handleAnalyze(searchQuery, 'product_description', true)}
+        onClear={handleClearAnalysis}
+        hasResults={Boolean(analysisData && !isLoading)}
+        isLoading={isLoading}
+        systemStatus={systemStatus}
+        onOpenStatusModal={() => setIsStatusOpen(true)}
+        onUploadClick={handleHeaderUploadClick}
+      />
+
+      {/* Main Search Engine Workspace */}
+      <main style={{ flex: 1 }}>
+        <Recommendations
+          analysisData={analysisData}
+          isLoading={isLoading}
+          onAnalyze={handleAnalyze}
+          onClear={handleClearAnalysis}
+          activeStandard={activeStandard}
+          setActiveStandard={setActiveStandard}
+          comparedStandards={comparedStandards}
+          onToggleCompare={handleToggleCompare}
+          savedStandards={savedStandards}
+          onToggleSave={handleToggleSave}
         />
+      </main>
 
-        {/* Dynamic Workspace Content */}
-        {activeTab === 'recommendations' && (
-          <Recommendations
-            analysisData={analysisData}
-            isLoading={isLoading}
-            onAnalyze={handleAnalyze}
-            onClear={handleClearAnalysis}
-            activeStandard={activeStandard}
-            setActiveStandard={setActiveStandard}
-            comparedStandards={comparedStandards}
-            onToggleCompare={handleToggleCompare}
-            savedStandards={savedStandards}
-            onToggleSave={handleToggleSave}
-          />
-        )}
-
-        {activeTab === 'explorer' && (
-          <StandardsExplorer
-            onViewDetails={setActiveStandard}
-            onToggleCompare={handleToggleCompare}
-            comparedStandards={comparedStandards}
-          />
-        )}
-
-        {activeTab === 'tender' && (
-          <TenderAnalysis
-            onViewDetails={setActiveStandard}
-          />
-        )}
-
-        {activeTab === 'history' && (
-          <History
-            historyItems={historyItems}
-            onOpenHistoryItem={handleOpenHistoryItem}
-            onClearHistory={() => setHistoryItems([])}
-          />
-        )}
-      </div>
+      {/* Minimal Footer */}
+      <footer style={{
+        borderTop: '1px solid var(--border-subtle)',
+        background: '#FFFFFF',
+        padding: '14px 24px',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        fontSize: '12px',
+        color: 'var(--text-muted)'
+      }}>
+        <div>
+          <span>BISense • Smart India Hackathon 2026 (Problem Statement: 26108)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {comparedStandards.length > 0 && (
+            <button
+              onClick={() => setIsCompareOpen(true)}
+              style={{ color: 'var(--primary-blue)', fontWeight: 600 }}
+            >
+              Compare Standards ({comparedStandards.length})
+            </button>
+          )}
+          <a
+            href="https://standards.bis.gov.in/website"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Official BIS Portal ↗
+          </a>
+          <button
+            onClick={() => setIsStatusOpen(true)}
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            System Status
+          </button>
+        </div>
+      </footer>
 
       {/* System Status Modal */}
       <SystemStatusModal

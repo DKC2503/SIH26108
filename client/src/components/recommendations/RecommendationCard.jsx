@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  ShieldCheck, 
   ExternalLink, 
+  ChevronRight, 
   Scale, 
   Bookmark, 
-  ChevronRight, 
-  Check, 
-  HelpCircle, 
-  AlertTriangle,
-  Info,
-  Calendar,
-  Building,
-  CheckCircle2
+  CheckCircle2, 
+  Building2, 
+  Calendar, 
+  FileCheck 
 } from 'lucide-react';
 
 export default function RecommendationCard({ 
@@ -31,58 +27,63 @@ export default function RecommendationCard({
   
   const verification = standard.verification || {};
   const verificationSource = standard.verification_source || verification.source || "official_bis_cache";
-  const officialBisUrl = standard.official_bis_url || standard.detail_url || "";
+  const rawBisUrl = standard.official_bis_url || standard.detail_url || "";
+  // Ensure we only link to authentic standard-details pages, never generic search pages
+  const officialBisUrl = (rawBisUrl && rawBisUrl.includes('/standard-details')) ? rawBisUrl : null;
   
-  // Clean badges based on verified evidence
+  // Truthful source badges
   const isBisLive = verificationSource === 'official_bis_live' || standard.data_source === 'BIS_LIVE';
   const isLocalVerified = verificationSource === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE';
   const isMongoCached = verificationSource === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE';
 
-  // Why this standard rationale
+  // Why this standard snippet
   const explanation = standard.structured_explanation?.why_recommended || 
     standard.explanation || 
-    `Standard specifies technical and compliance requirements for this product.`;
+    `Specifies requirements, sampling, and test methods for this procurement category.`;
 
-  // Match evidence categories (defensible scoring)
-  const productMatch = score >= 85 ? "Strong" : (score >= 65 ? "Moderate" : (score >= 40 ? "Relevant" : "Low"));
-  const appMatch = standard.scope ? "Strong" : (standard.title ? "Moderate" : "General");
-  const techMatch = (standard.technical_requirements?.length > 0 || standard.normative_references?.length > 0 || standard.test_methods?.length > 0) ? "Strong" : "Standard";
-  const industryMatch = standard.department ? "Strong" : "General";
-
-  // Coverage items derived from real data
-  const coverageItems = [
-    { label: "Product Specifications", status: standard.title ? "yes" : "neutral" },
-    { label: "Safety Requirements", status: (standard.safety_standards?.length > 0 || title.toLowerCase().includes('safety')) ? "yes" : "neutral" },
-    { label: "Test & Sampling Methods", status: (standard.test_methods?.length > 0 || title.toLowerCase().includes('test') || title.toLowerCase().includes('sampling')) ? "yes" : "neutral" },
-    { label: "Conformity & Quality Guidelines", status: (standard.certification?.mandatory || standard.normative_references?.length > 0) ? "yes" : "neutral" }
-  ];
+  // Real BIS portal metadata (never invent fake defaults)
+  const department = standard.department || null;
+  const committee = standard.technical_committee || null;
+  const standardType = standard.type_of_standard || standard.category || null;
+  const year = standard.year || standard.published_year || standard.reaffirmation_year || null;
+  
+  let certificationText = "Not available on BIS portal";
+  if (typeof standard.certification === 'string' && standard.certification.trim()) {
+    certificationText = standard.certification;
+  } else if (standard.certification?.mandatory === true) {
+    certificationText = standard.certification?.details || "Mandatory (QCO)";
+  } else if (standard.certification?.mandatory === false && standard.certification?.details) {
+    certificationText = standard.certification.details;
+  }
 
   return (
-    <div className="card-panel" style={{
-      marginBottom: '18px',
-      borderLeft: isPrimary ? '4px solid var(--interactive-blue)' : '4px solid var(--text-muted)',
-      background: 'var(--bg-surface)',
-      position: 'relative'
-    }}>
-      {/* Top Meta Bar */}
+    <div className="search-result-card">
+      {/* Top Breadcrumb & Status Row */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '12px',
-        marginBottom: '14px',
-        paddingBottom: '12px',
-        borderBottom: '1px solid var(--border-subtle)'
+        gap: '8px',
+        marginBottom: '6px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="result-breadcrumb">
+          <span>Bureau of Indian Standards</span>
+          <span>›</span>
+          <span>{department || "Indian Standards"}</span>
+          <span>›</span>
+          <span className="is-code" style={{ color: 'var(--text-main)', fontWeight: 600 }}>{isNumber}</span>
+        </div>
+
+        {/* Source & Status Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span className={`badge ${isPrimary ? 'badge-blue' : 'badge-neutral'}`}>
-            {isPrimary ? 'PRIMARY RECOMMENDATION' : 'ALLIED STANDARD'}
+            {isPrimary ? 'Primary Standard' : 'Allied Standard'}
           </span>
 
           {isCurrent ? (
             <span className="badge badge-verified">
-              ● CURRENT
+              ● Current
             </span>
           ) : (
             <span className="badge badge-warning">
@@ -91,213 +92,154 @@ export default function RecommendationCard({
           )}
 
           {isBisLive && (
-            <span className="badge badge-gold" title="Verified live from official BIS Standards portal">
-              ✓ LIVE BIS VERIFIED
+            <span className="badge badge-gold" title="Verified live via official BIS portal (standards.bis.gov.in)">
+              ✓ Live BIS Verified
             </span>
           )}
 
           {!isBisLive && isLocalVerified && (
-            <span className="badge badge-verified" title="Pre-indexed from verified Indian Standards catalog">
-              LOCAL VERIFIED INDEX
+            <span className="badge badge-verified" title="Indexed from verified Indian Standards catalog">
+              Local Verified Index
             </span>
           )}
 
           {!isBisLive && !isLocalVerified && isMongoCached && (
-            <span className="badge badge-blue" title="Cached from MongoDB standards database">
-              MONGODB CACHED
+            <span className="badge badge-blue" title="Cached in BISense repository">
+              MongoDB Cached
             </span>
           )}
 
           {!isBisLive && !isLocalVerified && !isMongoCached && (
-            <span className="badge badge-warning" title="Standard details could not be independently verified">
-              UNVERIFIED
+            <span className="badge badge-warning" title="Standard details pending BIS verification">
+              Unverified
             </span>
           )}
-        </div>
 
-        {/* Relevance Score (Prominently distinguished from verification) */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            RELEVANCE
-          </span>
+          {/* Relevance Match % */}
           <span style={{
-            fontSize: '18px',
-            fontWeight: '700',
+            fontSize: '11.5px',
+            fontWeight: 700,
             fontFamily: 'var(--font-mono)',
-            color: score >= 85 ? 'var(--status-verified)' : 'var(--accent-gold-light)'
+            color: score >= 80 ? 'var(--status-verified)' : 'var(--primary-blue)',
+            marginLeft: '4px'
           }}>
-            {score}
+            {score}% Match
           </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>/ 100</span>
         </div>
       </div>
 
-      {/* Main Standard Identity */}
-      <div style={{ marginBottom: '14px' }}>
-        <h3 className="is-code" style={{ fontSize: '18px', color: '#FFFFFF', marginBottom: '4px' }}>
-          {isNumber}
-        </h3>
-        <p style={{ fontSize: '14.5px', color: 'var(--text-primary)', fontWeight: '500', lineHeight: 1.4 }}>
-          {title}
-        </p>
+      {/* Main Standard Title (Clickable) */}
+      <div>
+        <a 
+          href="#view-details" 
+          onClick={(e) => { e.preventDefault(); onViewDetails(standard); }}
+          className="result-title"
+        >
+          {isNumber} : {title}
+        </a>
       </div>
 
-      {/* Why This Standard Box */}
+      {/* Rationale / Snippet */}
+      <p className="result-snippet">
+        {explanation}
+      </p>
+
+      {/* Structured BIS Metadata Grid */}
       <div style={{
-        background: 'var(--bg-app)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '16px',
+        padding: '8px 12px',
+        background: '#F8FAFC',
         border: '1px solid var(--border-subtle)',
         borderRadius: '6px',
-        padding: '12px 16px',
+        fontSize: '12px',
+        color: 'var(--text-secondary)',
         marginBottom: '14px'
       }}>
-        <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-gold-light)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
-          WHY THIS STANDARD
-        </div>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          {explanation}
-        </p>
-      </div>
+        {year && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Calendar size={13} color="var(--text-muted)" />
+            <span>Year: <strong>{year}</strong></span>
+          </div>
+        )}
 
-      {/* Two Column Grid: Match Evidence & Coverage */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '16px',
-        marginBottom: '16px'
-      }}>
-        {/* Match Evidence */}
-        <div style={{
-          padding: '12px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '6px'
-        }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px' }}>
-            MATCH EVIDENCE
+        {standardType && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <FileCheck size={13} color="var(--text-muted)" />
+            <span>Type: <strong>{standardType}</strong></span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Product Type</span>
-              <span style={{ fontWeight: 600, color: 'var(--status-verified)' }}>{productMatch}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Application & Scope</span>
-              <span style={{ fontWeight: 600, color: 'var(--status-verified)' }}>{appMatch}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Technical Requirements</span>
-              <span style={{ fontWeight: 600, color: techMatch === 'Strong' ? 'var(--status-verified)' : 'var(--accent-gold-light)' }}>{techMatch}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Industry Domain</span>
-              <span style={{ fontWeight: 600, color: 'var(--status-verified)' }}>{industryMatch}</span>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Coverage Checks */}
-        <div style={{
-          padding: '12px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: '6px'
-        }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px' }}>
-            STANDARD COVERAGE
+        {department && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Building2 size={13} color="var(--text-muted)" />
+            <span>Dept: <strong>{department}</strong></span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
-            {coverageItems.map((cov, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <CheckCircle2 size={14} color="var(--status-verified)" />
-                <span style={{ color: 'var(--text-secondary)' }}>{cov.label}</span>
-              </div>
-            ))}
+        )}
+
+        {committee && (
+          <div>
+            <span>Committee: <strong>{committee}</strong></span>
           </div>
+        )}
+
+        <div>
+          <span>Certification: <strong style={{ color: certificationText.includes('Mandatory') ? '#B45309' : 'inherit' }}>{certificationText}</strong></span>
         </div>
       </div>
 
-      {/* Standard Information Footer Details */}
-      {(standard.department || standard.technical_committee || standard.category) && (
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: '16px',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          marginBottom: '16px',
-          paddingTop: '8px',
-          borderTop: '1px solid var(--border-subtle)'
-        }}>
-          {standard.category && (
-            <div>
-              <span style={{ color: 'var(--text-muted)' }}>Category: </span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{standard.category}</span>
-            </div>
-          )}
-          {standard.department && (
-            <div>
-              <span style={{ color: 'var(--text-muted)' }}>Department: </span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{standard.department}</span>
-            </div>
-          )}
-          {standard.technical_committee && (
-            <div>
-              <span style={{ color: 'var(--text-muted)' }}>Committee: </span>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{standard.technical_committee}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Actions Toolbar */}
+      {/* Bottom Actions Bar */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '10px',
-        paddingTop: '12px',
-        borderTop: '1px solid var(--border-subtle)'
+        gap: '10px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
+            type="button"
             onClick={() => onViewDetails(standard)}
             className="btn btn-primary btn-sm"
           >
-            <span>View Full Details</span>
+            <span>View BIS Details</span>
             <ChevronRight size={14} />
           </button>
 
-          <button
-            onClick={() => onToggleCompare && onToggleCompare(standard)}
-            className={`btn ${isCompared ? 'btn-secondary' : 'btn-outline'} btn-sm`}
-          >
-            <Scale size={13} color={isCompared ? 'var(--accent-gold-light)' : 'inherit'} />
-            <span>{isCompared ? 'Added to Compare' : 'Compare'}</span>
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {officialBisUrl && (
             <a
               href={officialBisUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-outline btn-sm"
-              title="Open official record on standards.bis.gov.in"
+              className="btn btn-secondary btn-sm"
+              title="Open genuine standard record on standards.bis.gov.in"
             >
-              <span>Official BIS Record</span>
-              <ExternalLink size={12} />
+              <span>Open official BIS page</span>
+              <ExternalLink size={12} color="var(--primary-blue)" />
             </a>
           )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => onToggleCompare && onToggleCompare(standard)}
+            className="btn btn-secondary btn-sm"
+            title="Add standard to comparison table"
+          >
+            <Scale size={13} color={isCompared ? 'var(--primary-blue)' : 'var(--text-muted)'} />
+            <span>{isCompared ? 'Compared' : 'Compare'}</span>
+          </button>
 
           <button
+            type="button"
             onClick={() => onSave && onSave(standard)}
-            className="btn btn-outline btn-sm"
+            className="btn btn-secondary btn-sm"
             title="Save to session bookmarks"
           >
-            <Bookmark size={13} color={isSaved ? 'var(--accent-gold-light)' : 'inherit'} />
+            <Bookmark size={13} color={isSaved ? 'var(--status-gold)' : 'var(--text-muted)'} />
             <span>{isSaved ? 'Saved' : 'Save'}</span>
           </button>
         </div>
