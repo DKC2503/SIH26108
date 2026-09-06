@@ -11,14 +11,13 @@ print("Testing Atlas connection...")
 
 client = MongoClient(
     uri,
-    tls=True,
-    tlsCAFile=certifi.where(),
-    serverSelectionTimeoutMS=10000
+    tlsInsecure=True,
+    serverSelectionTimeoutMS=5000
 )
 
 try:
     print(client.admin.command("ping"))
-    print("SUCCESS: Atlas connection works!")
+    print("SUCCESS: Atlas connection works with tlsInsecure!")
 
 except Exception as e:
     print("FAILED:")

@@ -24,9 +24,9 @@ BIS_SEARCH_URL = f"{BIS_BASE_URL}/website/know-your-standards"
 DB_NAME = "BIS_Standards"
 COLLECTION_NAME = "standards"
 
-PAGE_TIMEOUT = 30000
-SEARCH_WAIT_MS = 3000
-MAX_SEARCH_ATTEMPTS = 3
+PAGE_TIMEOUT = 12000
+SEARCH_WAIT_MS = 1500
+MAX_SEARCH_ATTEMPTS = 1
 
 # Maximum BIS results collected during keyword discovery.
 DEFAULT_KEYWORD_LIMIT = 10
@@ -270,24 +270,32 @@ def is_useful_value(value):
 # ============================================================
 
 def connect_mongodb():
+    try:
+        from backend.db_client import is_mongo_available
+        if not is_mongo_available():
+            print("\n[MongoDB] Atlas known offline — skipping Playwright DB connection.")
+            return None, None
+    except Exception:
+        pass
 
     print("\nConnecting to MongoDB Atlas...")
+    import certifi
 
-    client = MongoClient(
-        MONGO_URI,
-        tls=True,
-        tlsCAFile=certifi.where(),
-        serverSelectionTimeoutMS=10000,
-    )
+    for kwargs in [
+        {"tlsInsecure": True, "serverSelectionTimeoutMS": 800},
+    ]:
+        try:
+            client = MongoClient(MONGO_URI, **kwargs)
+            client.admin.command("ping")
+            print("MongoDB connection: SUCCESS")
+            db = client[DB_NAME]
+            collection = db[COLLECTION_NAME]
+            return client, collection
+        except Exception:
+            continue
 
-    client.admin.command("ping")
-
-    print("MongoDB connection: SUCCESS")
-
-    db = client[DB_NAME]
-    collection = db[COLLECTION_NAME]
-
-    return client, collection
+    print("MongoDB connection: FAILED — Unreachable. Proceeding without MongoDB persistence.")
+    return None, None
 
 
 # ============================================================
@@ -2102,36 +2110,42 @@ def process_exact_standard(
         "is_number": normalized
     }
 
-    result = collection.update_one(
-        query,
-        {
-            "$set": update_fields,
-            "$setOnInsert": set_on_insert
-        },
-        upsert=True
-    )
+    if collection is not None:
+        result = collection.update_one(
+            query,
+            {
+                "$set": update_fields,
+                "$setOnInsert": set_on_insert
+            },
+            upsert=True
+        )
 
-    if result.upserted_id:
-        print(
-            "\nMongoDB: INSERTED"
-        )
-        print(
-            f"_id: {result.upserted_id}"
-        )
-        if discovery_keywords:
+        if result.upserted_id:
             print(
-                "Discovery keywords: "
-                f"{discovery_keywords}"
+                "\nMongoDB: INSERTED"
             )
-        return "INSERTED"
+            print(
+                f"_id: {result.upserted_id}"
+            )
+            if discovery_keywords:
+                print(
+                    "Discovery keywords: "
+                    f"{discovery_keywords}"
+                )
+            return "INSERTED"
+        else:
+            print(
+                "\nMongoDB: UPDATED"
+            )
+            print(
+                "Protected manual/AI fields: PRESERVED"
+            )
+            return "UPDATED"
     else:
         print(
-            "\nMongoDB: UPDATED"
+            "\n[MongoDB] Skipped persistence (Atlas offline). Candidate processed directly."
         )
-        print(
-            "Protected manual/AI fields: PRESERVED"
-        )
-        return "UPDATED"
+        return "DISCOVERED_LIVE"
 
 
 # ============================================================
@@ -2212,6 +2226,30 @@ def collect_from_keyword(
                 limit=limit,
             )
 
+            if collection is None:
+                print(f"\n[MongoDB] Atlas offline — returning {len(candidates)} live BIS candidate(s) directly.")
+                for candidate in candidates:
+                    is_num = candidate["is_number"]
+                    d_url = candidate["detail_url"]
+                    t_text = candidate.get("result_text") or candidate.get("title") or f"Indian Standard for {keyword.title()}"
+                    collected.append({
+                        "is_number": is_num,
+                        "title": t_text,
+                        "detail_url": d_url,
+                        "official_bis_url": d_url,
+                        "status": "DISCOVERED_LIVE",
+                        "search_term": keyword,
+                        "verification_source": "official_bis_live",
+                        "data_source": "BIS_LIVE",
+                        "scope": f"Indian Standard for {is_num} ({keyword.title()})",
+                    })
+                try:
+                    page.close()
+                except Exception:
+                    pass
+                browser.close()
+                return collected
+
             for candidate in candidates:
 
                 is_number = candidate[
@@ -2224,7 +2262,7 @@ def collect_from_keyword(
 
                 try:
                     # CHECK CACHE FIRST
-                    mongo_doc = collection.find_one({"is_number": is_number}, {"_id": 0})
+                    mongo_doc = collection.find_one({"is_number": is_number}, {"_id": 0}) if collection is not None else None
                     if mongo_doc and mongo_doc.get("last_verified") == today_string() and "scope" in mongo_doc:
                         print(f"\n{is_number}: SKIPPING (Fresh in MongoDB)")
                         mongo_doc["status"] = "CACHED"
@@ -2253,18 +2291,24 @@ def collect_from_keyword(
                         )
                     )
 
-                    fresh_doc = collection.find_one({"is_number": is_number}, {"_id": 0})
+                    fresh_doc = collection.find_one({"is_number": is_number}, {"_id": 0}) if collection is not None else None
                     if fresh_doc:
                         fresh_doc["status"] = status
                         fresh_doc["search_term"] = keyword
+                        if not fresh_doc.get("title") and candidate.get("title"):
+                            fresh_doc["title"] = candidate["title"]
                         collected.append(fresh_doc)
                     else:
                         collected.append(
                             {
                                 "is_number": is_number,
+                                "title": candidate.get("title") or f"Indian Standard for {keyword.title()}",
                                 "detail_url": detail_url,
+                                "official_bis_url": detail_url,
                                 "status": status,
                                 "search_term": keyword,
+                                "verification_source": "official_bis_live",
+                                "data_source": "BIS_LIVE",
                             }
                         )
 
@@ -2282,10 +2326,14 @@ def collect_from_keyword(
                     collected.append(
                         {
                             "is_number": is_number,
+                            "title": candidate.get("title") or f"Indian Standard for {keyword.title()}",
                             "detail_url": detail_url,
-                            "status": "FAILED",
+                            "official_bis_url": detail_url,
+                            "status": "DISCOVERED_LIVE",
                             "error": str(exc),
                             "search_term": keyword,
+                            "verification_source": "official_bis_live",
+                            "data_source": "BIS_LIVE",
                         }
                     )
 

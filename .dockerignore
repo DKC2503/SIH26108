@@ -1,27 +1,22 @@
+# Version Control
+.git/
+.gitignore
+
 # Dependencies
 node_modules/
 client/node_modules/
 venv/
 .venv/
+
+# Bytecode & Caches
 __pycache__/
 *.pyc
 *.pyo
-
-# Build & Dist
-client/dist/
-dist/
-build/
-
-# Environment
-.env
-.env.local
-.env.*.local
+.cache/
 
 # Logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Scraped / debug / temporary artifacts
 bis_main.js
@@ -34,15 +29,11 @@ bis_search_debug.png
 standards.json
 *.png
 
-# IDE / Editor
+# Environment
+.env
+.env.local
+
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# OS
-Thumbs.db
-.DS_Store
-
-# Antigravity
 .gemini/

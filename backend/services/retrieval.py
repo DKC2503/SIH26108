@@ -141,22 +141,48 @@ def score_standard(
 
 
 def load_all_standards() -> List[Dict]:
-    """Load all standards from MongoDB (read-only)."""
-    coll = get_standards_collection()
-    return list(coll.find({}, {"_id": 0}))
+    """Load all standards from MongoDB or local dataset fallback."""
+    from backend.db_client import is_mongo_available
+    if not is_mongo_available():
+        from backend.services.local_standards import LOCAL_STANDARDS
+        return LOCAL_STANDARDS
+    try:
+        coll = get_standards_collection()
+        docs = list(coll.find({}, {"_id": 0}))
+        if docs:
+            return docs
+    except Exception:
+        pass
+    from backend.services.local_standards import LOCAL_STANDARDS
+    return LOCAL_STANDARDS
 
 
 def lexical_search_mongo(requirement: Dict, limit: int = 80) -> List[Dict]:
     """
-    Fast lexical pre-filter in MongoDB using regex.
+    Fast lexical pre-filter in MongoDB (or local dataset if MongoDB is offline).
     Returns candidate documents for re-ranking.
     """
+    from backend.db_client import is_mongo_available
+    if not is_mongo_available():
+        all_stds = load_all_standards()
+        product = requirement.get("product", "")
+        words = [w for w in _normalize(product).split() if len(w) > 2 and w not in STOP_WORDS]
+        if not words:
+            return all_stds[:limit]
+        matched = []
+        for s in all_stds:
+            s_text = _build_standard_text(s)
+            if any(w in s_text for w in words):
+                matched.append(s)
+        return matched if matched else all_stds[:limit]
+
     coll = get_standards_collection()
     product = requirement.get("product", "")
     words = [w for w in _normalize(product).split() if len(w) > 2 and w not in STOP_WORDS]
 
     if not words:
-        return list(coll.find({}, {"_id": 0}).limit(limit))
+        docs = list(coll.find({}, {"_id": 0}).limit(limit))
+        return docs if docs else load_all_standards()[:limit]
 
     # Build OR regex across key fields
     pattern = "|".join(re.escape(w) for w in words)
@@ -168,7 +194,8 @@ def lexical_search_mongo(requirement: Dict, limit: int = 80) -> List[Dict]:
             {"product_keywords": {"$regex": pattern, "$options": "i"}},
         ]
     }
-    return list(coll.find(query, {"_id": 0}).limit(limit))
+    docs = list(coll.find(query, {"_id": 0}).limit(limit))
+    return docs if docs else load_all_standards()[:limit]
 
 
 def hybrid_retrieve(

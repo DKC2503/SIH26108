@@ -1,84 +1,75 @@
 """
 backend/services/pipeline.py
 
-Main analysis pipeline — BIS-first, MongoDB-as-cache.
+Main analysis pipeline — Optimized with MongoDB-first retrieval, explicit timeouts,
+Gemini availability tracking, single-query BIS discovery, and deterministic ranking.
 
 Sequence:
 1. Requirement Understanding (Gemini with local fallback)
-2. LIVE BIS DISCOVERY → collect_from_keyword → saves full BIS data to MongoDB
-3. Retrieve full MongoDB records (now containing scope, normative_refs, amendments)
-4. Completeness check (3 levels: BASIC/OFFICIAL/ENRICHED)
-5. Freshness check (if complete, lightweight compare)
-6. AI classification (with local fallback — no Gemini needed for basic routing)
-7. Local explanation generation (Gemini only as optional upgrade)
-8. Final structured response
-
-Key rules:
-- BIS data ALWAYS wins over MongoDB cache
-- Gemini failure NEVER blocks BIS data from being returned
-- scope/normative_references/amendments come from BIS scraper, not Gemini
+2. Check MongoDB Cache First
+   - If sufficient candidates found: return candidates (skip live BIS)
+   - If insufficient: run ONE BIS discovery query using primary product
+3. Hybrid ranking & deterministic composite scoring
+4. Candidate classification & explanation (Gemini top-k max 3-5 if available, else local)
+5. Structured pipeline stage status & debug timing logs
 """
 
 from typing import Dict, List
 import time
 
 from backend.db_client import get_standards_collection
-from backend.services.verification import determine_verification_status, merge_bis_and_mongo
+from backend.services.verification import determine_verification_status
+from backend.ai.gemini_client import is_gemini_available
 
-# We no longer hardcode PRIMARY_CLASSIFICATIONS, we rely on the structured explanation.
 
-
-def _trigger_bis_discovery(queries: List[str]) -> List[Dict]:
+def _trigger_bis_discovery(primary_query: str) -> List[Dict]:
     """
-    Trigger live BIS discovery for a list of queries.
-    Now returns FULL MongoDB records (including scope, normative_refs, amendments)
-    after BIS scraping and MongoDB save.
+    Trigger live BIS discovery for a single primary query term.
+    Returns list of standard records after BIS scraping and MongoDB update.
     """
+    if not primary_query or not primary_query.strip():
+        return []
+
     try:
         from backend.bis.client import discover_standards_by_keyword
     except ImportError:
         print("[Pipeline] Error importing BIS client.")
         return []
 
-    candidates = {}
+    kw = primary_query.strip()
+    print(f"[BIS] discovery started for: '{kw}'")
+    try:
+        results = discover_standards_by_keyword(kw, limit=10, timeout_sec=25.0)
+        if results:
+            print(f"[BIS] discovery completed: {len(results)} candidate(s) found for '{kw}'")
+            return results
+        else:
+            print(f"[BIS] discovery completed: 0 results for '{kw}'")
+    except Exception as e:
+        print(f"[BIS] discovery failed for '{kw}': {e}")
 
-    for kw in queries:
-        kw = kw.strip()
-        if not kw:
-            continue
-        print(f"[Pipeline] Live BIS Discovery for: '{kw}'")
-        try:
-            # discover_standards_by_keyword now returns full MongoDB records
-            results = discover_standards_by_keyword(kw, limit=10)
-            if results:
-                for r in results:
-                    is_num = r.get("is_number")
-                    if is_num and is_num not in candidates:
-                        candidates[is_num] = r
-                        print(f"[Pipeline]   Found: {is_num} | scope={'YES' if r.get('scope') else 'NO'} | refs={len(r.get('normative_references') or [])}")
-        except Exception as e:
-            print(f"[Pipeline] BIS Discovery failed for query '{kw}': {e}")
-            continue
-
-    return list(candidates.values())
+    return []
 
 
 def _score_to_label(score: float) -> str:
-    if score >= 0.75: return "HIGH"
-    if score >= 0.50: return "MEDIUM"
-    if score >= 0.25: return "LOW"
+    if score >= 0.75:
+        return "HIGH"
+    if score >= 0.50:
+        return "MEDIUM"
+    if score >= 0.25:
+        return "LOW"
     return "VERY LOW"
 
 
 def _local_classify(std: Dict, requirement: Dict) -> Dict:
     """
-    Local deterministic classification when Gemini is unavailable.
-    Uses title keywords and product type matching.
+    Local deterministic classification when Gemini is unavailable or for candidates beyond top-k.
+    Uses title keywords, word stemming, and product type matching.
     """
-    import re
     title = (std.get("title") or "").lower()
     product = requirement.get("product", "").lower()
     product_type = requirement.get("product_type", "").lower().replace("_", " ")
+    verification_source = std.get("verification_source") or ""
 
     # Check for withdrawn status
     bis_status = (std.get("bis_status") or std.get("status") or "").lower()
@@ -88,31 +79,60 @@ def _local_classify(std: Dict, requirement: Dict) -> Dict:
     # Check exact product type match (e.g. "ordinary portland cement" in title)
     if product_type and product_type != "unknown":
         if product_type in title:
-            return {"classification": "DIRECT_PRODUCT", "confidence": 0.9,
-                    "reason": f"Title contains exact product type '{product_type}'."}
+            return {
+                "classification": "DIRECT_PRODUCT",
+                "confidence": 0.90,
+                "reason": f"Title contains exact product type '{product_type}'.",
+            }
 
-    # Check product keyword match
-    if product and len(product) > 2 and product in title:
-        # Could be direct or variant — check for qualifiers
-        qualifiers = ["test", "method", "sampling", "testing", "analysis", "equipment",
-                      "reinforcement", "concrete pipe", "slag", "pozzolana"]
-        for q in qualifiers:
-            if q in title:
-                return {"classification": "RELATED_PRODUCT", "confidence": 0.6,
-                        "reason": f"Title contains '{product}' but also qualifier '{q}'."}
-        return {"classification": "DIRECT_PRODUCT", "confidence": 0.75,
-                "reason": f"Title contains product keyword '{product}'."}
+    # Check product word overlap (handles singular/plural like pen vs pens, lamp vs lamps)
+    product_words = [w for w in product.split() if len(w) > 2 and w not in ("for", "the", "and", "use", "with")]
+    title_words = title.split()
+    if product_words:
+        matched_words = 0
+        for pw in product_words:
+            if any(pw in tw or tw in pw for tw in title_words):
+                matched_words += 1
+        
+        if matched_words >= max(1, len(product_words) - 1):
+            is_test = any(ti in title for ti in ["test method", "methods of test", "method of sampling", "sampling", "chemical analysis"])
+            if is_test:
+                return {
+                    "classification": "TEST_METHOD",
+                    "confidence": 0.75,
+                    "reason": f"Title indicates test method for product '{product}'.",
+                }
+            return {
+                "classification": "DIRECT_PRODUCT",
+                "confidence": 0.85,
+                "reason": f"Title matches key product words for '{product}'.",
+            }
+
+    # Check live BIS discovery candidate
+    if verification_source == "official_bis_live" or std.get("data_source") == "BIS_LIVE":
+        return {
+            "classification": "DIRECT_PRODUCT",
+            "confidence": 0.80,
+            "reason": f"Live BIS candidate discovered for product keyword '{product}'.",
+        }
 
     # Check for test method indicators
-    test_indicators = ["test method", "testing", "methods of test", "specification for test",
-                       "method of sampling", "sampling", "chemical analysis"]
+    test_indicators = [
+        "test method", "testing", "methods of test", "specification for test",
+        "method of sampling", "sampling", "chemical analysis",
+    ]
     if any(ti in title for ti in test_indicators):
-        return {"classification": "TEST_METHOD", "confidence": 0.7,
-                "reason": "Standard title indicates test/sampling methods."}
+        return {
+            "classification": "TEST_METHOD",
+            "confidence": 0.70,
+            "reason": "Standard title indicates test/sampling methods.",
+        }
 
-    # Default to related
-    return {"classification": "RELATED_PRODUCT", "confidence": 0.4,
-            "reason": "Local classification fallback — possible relation."}
+    return {
+        "classification": "RELATED_PRODUCT",
+        "confidence": 0.50,
+        "reason": "Local classification fallback — possible relation.",
+    }
 
 
 def run_analysis(
@@ -121,8 +141,8 @@ def run_analysis(
     enable_bis_discovery: bool = True,
 ) -> Dict:
     """
-    Full BIS-first analysis pipeline.
-    Returns the complete structured API response.
+    Full analysis pipeline with performance optimizations, MongoDB-first retrieval,
+    and Gemini availability checks.
     """
     t0 = time.time()
     run_meta = {
@@ -131,6 +151,7 @@ def run_analysis(
         "deep_extraction_performed": False,
         "gemini_used": False,
         "local_fallback_used": False,
+        "bis_skipped_reason": None,
     }
 
     result = {
@@ -146,192 +167,229 @@ def run_analysis(
             "related_products": [],
         },
         "tender_analysis": {},
+        "stages": [],
         "timings": {},
         "warnings": [],
         "run_meta": run_meta,
     }
 
     # ----------------------------------------------------------
-    # STEP 1: Requirement Understanding
-    # Gemini first, local fallback on any failure
+    # STEP 1: REQUIREMENT UNDERSTANDING
     # ----------------------------------------------------------
     t_req = time.time()
     requirement = None
+    gemini_active = is_gemini_available()
 
-    try:
-        from backend.ai.gemini_client import parse_requirement, _validate_requirement
-        raw = parse_requirement(query, input_type)
-        requirement = _validate_requirement(raw, query)
-        if requirement:
-            run_meta["gemini_used"] = True
-    except Exception as e:
-        print(f"[Pipeline] Gemini parse_requirement failed: {e}")
+    if gemini_active:
+        print("[Gemini] AVAILABLE — Attempting Gemini requirement parser")
+        try:
+            from backend.ai.gemini_client import parse_requirement, _validate_requirement
+            raw = parse_requirement(query, input_type)
+            requirement = _validate_requirement(raw, query)
+            if requirement:
+                run_meta["gemini_used"] = True
+        except Exception as e:
+            print(f"[Gemini] parse_requirement failed: {e}")
+    else:
+        print("[Gemini] UNAVAILABLE — Skipping Gemini requirement call")
 
     if not requirement:
         from backend.ai.gemini_client import _local_fallback_parse
         requirement = _local_fallback_parse(query)
         run_meta["local_fallback_used"] = True
-        result["warnings"].append("Gemini unavailable — used local fallback requirement parser.")
+        if not gemini_active:
+            result["warnings"].append("Gemini unavailable — using local deterministic requirement parser.")
 
-    # Final validation: product must not be the full query
+    # Validation check: ensure product is concise
     product = requirement.get("product", "")
     if not product or len(product.split()) > 6 or product.strip().lower() == query.strip().lower():
         from backend.ai.gemini_client import _local_fallback_parse
         requirement = _local_fallback_parse(query)
         run_meta["local_fallback_used"] = True
 
-    print("[Pipeline] === REQUIREMENT UNDERSTOOD ===")
-    print(f"[Pipeline]   Product  : {requirement.get('product')}")
-    print(f"[Pipeline]   Type     : {requirement.get('product_type')}")
-    print(f"[Pipeline]   Purpose  : {requirement.get('purpose')}")
-    print(f"[Pipeline]   Industry : {requirement.get('industry')}")
-    print(f"[Pipeline]   Queries  : {requirement.get('bis_search_queries')}")
-    print(f"[Pipeline]   Source   : {requirement.get('_source', 'gemini')}")
-    print("[Pipeline] ========================================")
+    t_req_ms = round((time.time() - t_req) * 1000, 1)
+    print(f"[Timing] requirement parsing: {t_req_ms} ms")
+    print(f"[Requirement] Product: '{requirement.get('product')}' | Type: '{requirement.get('product_type')}' | Purpose: '{requirement.get('purpose')}'")
 
     result["requirement"] = requirement
-    search_queries = requirement.get("bis_search_queries") or [requirement.get("product", query)]
-    result["timings"]["requirement_understanding"] = round(time.time() - t_req, 3)
 
     # ----------------------------------------------------------
-    # STEP 2: Live BIS Discovery
-    # Returns full MongoDB records with scope/normative_refs/amendments
+    # STEP 2: CHECK MONGODB CACHE FIRST
+    # ----------------------------------------------------------
+    t_mongo = time.time()
+    from backend.db_client import is_mongo_available
+    mongo_candidates = []
+    scored_mongo = []
+
+    if is_mongo_available():
+        print("[MongoDB] retrieval started")
+        from backend.services.retrieval import hybrid_retrieve
+        try:
+            scored_mongo = hybrid_retrieve(requirement, top_k=15)
+            mongo_candidates = [sm["standard"] for sm in scored_mongo]
+            run_meta["mongo_cache_used"] = True
+        except Exception as e:
+            print(f"[MongoDB] retrieval error: {e}")
+            result["warnings"].append(f"MongoDB search warning: {e}")
+    else:
+        print("[MongoDB] UNAVAILABLE — Using local hybrid retrieval dataset")
+        from backend.services.retrieval import hybrid_retrieve
+        try:
+            scored_mongo = hybrid_retrieve(requirement, top_k=15)
+            mongo_candidates = [sm["standard"] for sm in scored_mongo]
+            run_meta["mongo_cache_used"] = False
+        except Exception as e:
+            print(f"[Local Dataset] retrieval error: {e}")
+            result["warnings"].append(f"Local dataset search warning: {e}")
+
+    t_mongo_ms = round((time.time() - t_mongo) * 1000, 1)
+    print(f"[Timing] MongoDB retrieval: {t_mongo_ms} ms ({len(mongo_candidates)} candidates retrieved)")
+
+    # Evaluate if MongoDB candidates are sufficient
+    is_sufficient = False
+    if mongo_candidates and is_mongo_available():
+        for sm in scored_mongo[:3]:
+            details = sm.get("score_details", {})
+            if details.get("phrase_score", 0) >= 0.8 or sm.get("score", 0) >= 0.65:
+                is_sufficient = True
+                break
+        if len(mongo_candidates) >= 3 and any(sm.get("score_details", {}).get("phrase_score", 0) > 0 for sm in scored_mongo):
+            is_sufficient = True
+
+    # ----------------------------------------------------------
+    # STEP 3: LIVE BIS DISCOVERY (ONLY IF INSUFFICIENT & ENABLED)
     # ----------------------------------------------------------
     t_bis = time.time()
     bis_candidates = []
 
-    if enable_bis_discovery:
-        bis_candidates = _trigger_bis_discovery(search_queries)
+    if not enable_bis_discovery:
+        run_meta["bis_skipped_reason"] = "Disabled by user request"
+        print("[BIS] discovery skipped: Disabled by request")
+    elif is_sufficient:
+        run_meta["bis_skipped_reason"] = "Sufficient candidates found in MongoDB"
+        print("[BIS] discovery skipped: Sufficient candidates found in MongoDB")
+    else:
+        primary_term = requirement.get("product") or query
+        bis_candidates = _trigger_bis_discovery(primary_term)
+
+        # If primary search produced 0 results and product_type exists, try product_type
+        if not bis_candidates and requirement.get("product_type") and requirement["product_type"] != "unknown":
+            alt_term = requirement["product_type"].replace("_", " ")
+            if alt_term != primary_term.lower():
+                print(f"[BIS] Primary search returned 0 results. Trying secondary term: '{alt_term}'")
+                bis_candidates = _trigger_bis_discovery(alt_term)
+
         if bis_candidates:
             run_meta["live_bis_used"] = True
-            print(f"[Pipeline] BIS Discovery found {len(bis_candidates)} candidates.")
         else:
-            print("[Pipeline] Live BIS Discovery returned 0 results.")
+            run_meta["bis_skipped_reason"] = "No live BIS candidates found"
 
-    result["timings"]["live_bis_discovery"] = round(time.time() - t_bis, 3)
+    t_bis_ms = round((time.time() - t_bis) * 1000, 1)
+    print(f"[Timing] BIS discovery: {t_bis_ms} ms")
 
-    # ----------------------------------------------------------
-    # STEP 3: MongoDB Completeness Check & Optional Refresh
-    # ----------------------------------------------------------
-    t_mongo = time.time()
-    coll = get_standards_collection()
-    verified_candidates = []
-    deep_extraction_count = 0
-    MAX_DEEP = 3
+    # Combine candidates (BIS candidates take precedence, merged with local/Mongo metadata)
+    candidate_dict = {}
+    for c in mongo_candidates:
+        is_num = c.get("is_number")
+        if is_num:
+            item_copy = dict(c)
+            if not item_copy.get("verification_source"):
+                item_copy["verification_source"] = "mongodb_cache" if is_mongo_available() else "local_dataset"
+            candidate_dict[is_num] = item_copy
 
-    from backend.services.freshness import get_completeness_level, perform_lightweight_freshness_check, trigger_deep_extraction
+    for c in bis_candidates:
+        is_num = c.get("is_number")
+        if is_num:
+            if is_num in candidate_dict:
+                existing = candidate_dict[is_num]
+                for k, v in c.items():
+                    if v:
+                        existing[k] = v
+                existing["verification_source"] = "official_bis_live"
+            else:
+                c_copy = dict(c)
+                c_copy["verification_source"] = "official_bis_live"
+                candidate_dict[is_num] = c_copy
 
-    if not bis_candidates:
-        result["warnings"].append("Live BIS Discovery yielded no results. Falling back to MongoDB cache.")
-        run_meta["mongo_cache_used"] = True
-        try:
-            from backend.services.retrieval import hybrid_retrieve
-            scored_mongo = hybrid_retrieve(requirement, top_k=10)
-            for sm in scored_mongo:
-                std = sm["standard"]
-                std["verification_source"] = "mongodb_cache"
-                verified_candidates.append(std)
-        except Exception as e:
-            result["warnings"].append(f"MongoDB fallback also failed: {e}")
-    else:
-        # bis_candidates are already full MongoDB records from client.py
-        for std in bis_candidates:
-            is_num = std.get("is_number")
-            if not is_num:
-                continue
-
-            # Determine completeness from the record we already have
-            level = get_completeness_level(std)
-            official_url = std.get("official_bis_url") or std.get("detail_url", "")
-
-            print(f"[Pipeline] {is_num}: completeness={level} | scope={'YES' if std.get('scope') else 'NO'} | refs={len(std.get('normative_references') or [])}")
-
-            # If only BASIC_COMPLETE or INCOMPLETE, try deep extraction to get full BIS data
-            if level in ("INCOMPLETE", "BASIC_COMPLETE") and official_url and deep_extraction_count < MAX_DEEP:
-                # Pre-filter: skip obviously unrelated standards
-                title = (std.get("title") or "").lower()
-                product_kw = requirement.get("product", "").lower()
-                product_type_kw = requirement.get("product_type", "").lower().replace("_", " ")
-
-                is_relevant = (
-                    not title or  # No title yet → extract
-                    (product_kw and product_kw in title) or
-                    (product_type_kw and product_type_kw != "unknown" and product_type_kw in title)
-                )
-                is_withdrawn = (std.get("bis_status") or "").lower() == "withdrawn" or title == "withdrawn"
-
-                if is_relevant and not is_withdrawn:
-                    print(f"[Pipeline] Triggering deep extraction for {is_num} (level={level})")
-                    deep_data = trigger_deep_extraction(is_num, official_url)
-                    deep_extraction_count += 1
-                    run_meta["deep_extraction_performed"] = True
-
-                    if deep_data:
-                        # Save enriched data to MongoDB
-                        try:
-                            coll.update_one(
-                                {"is_number": is_num},
-                                {"$set": deep_data},
-                                upsert=True
-                            )
-                            # Fetch fresh record
-                            fresh = coll.find_one({"is_number": is_num}, {"_id": 0})
-                            if fresh:
-                                std = fresh
-                        except Exception as e:
-                            print(f"[Pipeline] MongoDB update failed for {is_num}: {e}")
-                            std.update(deep_data)
-                else:
-                    if is_withdrawn:
-                        print(f"[Pipeline] Skipping deep extraction for {is_num} (withdrawn)")
-                    else:
-                        print(f"[Pipeline] Skipping deep extraction for {is_num} (unrelated to '{product_kw}')")
-
-            # Ensure official_bis_url is always set
-            if not std.get("official_bis_url") and official_url:
-                std["official_bis_url"] = official_url
-
-            std["verification_source"] = "official_bis_live"
-            verified_candidates.append(std)
-
-    result["timings"]["mongo_and_completeness"] = round(time.time() - t_mongo, 3)
+    combined_candidates = list(candidate_dict.values())
 
     # ----------------------------------------------------------
-    # STEP 4: AI Classification + Local Explanation
+    # STEP 4: DETERMINISTIC COMPOSITE RANKING & TOP-K CLASSIFICATION
     # ----------------------------------------------------------
-    t_cls = time.time()
+    t_rank = time.time()
+    print("[Ranking] started")
+
+    from backend.services.retrieval import score_standard, _get_embedding_model
+    from sentence_transformers import util
     from backend.ai.gemini_client import classify_candidate, generate_explanation, generate_local_explanation
+    from backend.services.freshness import get_completeness_level
 
-    product_req = requirement.get("product", "").lower()
+    # Compute semantic embeddings in bulk
+    product_query = requirement.get("product", "")
+    if requirement.get("material"):
+        product_query += " " + requirement["material"]
+    if requirement.get("product_type"):
+        product_query += " " + requirement["product_type"].replace("_", " ")
 
-    for std in verified_candidates:
+    sem_scores = [0.0] * len(combined_candidates)
+    if combined_candidates:
+        try:
+            embed_model = _get_embedding_model()
+            q_emb = embed_model.encode(product_query, convert_to_tensor=True)
+            from backend.services.retrieval import _build_standard_text
+            c_texts = [_build_standard_text(c) for c in combined_candidates]
+            c_embs = embed_model.encode(c_texts, convert_to_tensor=True)
+            sims = util.cos_sim(q_emb, c_embs)[0]
+            sem_scores = sims.tolist()
+        except Exception as e:
+            print(f"[Ranking] Embedding warning: {e}")
+
+    # Score candidates
+    scored_candidates = []
+    for i, std in enumerate(combined_candidates):
+        scores = score_standard(std, requirement, sem_scores[i])
+        scored_candidates.append({
+            "standard": std,
+            "composite_score": scores["score"],
+            "scores": scores,
+        })
+
+    # Sort descending by composite score
+    scored_candidates.sort(key=lambda x: x["composite_score"], reverse=True)
+
+    # Process candidates: Gemini for TOP 5 candidates MAX (if available), local for rest
+    TOP_K_GEMINI = 5
+    for rank_idx, item in enumerate(scored_candidates):
+        std = item["standard"]
         is_num = std.get("is_number", "")
+        composite_score = item["composite_score"]
 
-        # Status check
+        # Verification status check
         verification = determine_verification_status(std)
         bis_status = (std.get("bis_status") or std.get("status") or "").lower()
         if bis_status in ("withdrawn", "superseded", "obsolete", "cancelled"):
             verification["lifecycle_status"] = bis_status.capitalize()
             verification["eligible_for_recommendation"] = False
 
-        # Classification — try Gemini, fall back to local
         classification = None
-        confidence = 0.5
+        confidence = composite_score
         evidence = ""
 
-        try:
-            cls_result = classify_candidate(std, requirement)
-            classification = cls_result.get("classification", "UNRELATED")
-            evidence = cls_result.get("reason", "")
-            confidence = float(cls_result.get("confidence", 0.5))
-        except Exception:
-            pass
+        # Use Gemini only for TOP-K candidates when available
+        if rank_idx < TOP_K_GEMINI and is_gemini_available():
+            try:
+                cls_res = classify_candidate(std, requirement)
+                classification = cls_res.get("classification")
+                evidence = cls_res.get("reason", "")
+                confidence = float(cls_res.get("confidence", composite_score))
+            except Exception:
+                pass
 
         if not classification:
-            cls_result = _local_classify(std, requirement)
-            classification = cls_result.get("classification", "RELATED_PRODUCT")
-            evidence = cls_result.get("reason", "Local classification.")
-            confidence = float(cls_result.get("confidence", 0.5))
+            cls_res = _local_classify(std, requirement)
+            classification = cls_res.get("classification", "RELATED_PRODUCT")
+            evidence = cls_res.get("reason", "Local deterministic classification.")
+            confidence = float(cls_res.get("confidence", composite_score))
 
         if classification == "UNRELATED":
             continue
@@ -345,13 +403,13 @@ def run_analysis(
             cert_display = str(cert)
             cert_mandatory = None
 
-        # Generate explanation — local first, Gemini optional
-        explanation = generate_explanation(std, requirement, classification, confidence)
+        # Explanation: Gemini for TOP-K if available, local fallback otherwise
+        if rank_idx < TOP_K_GEMINI and is_gemini_available():
+            explanation = generate_explanation(std, requirement, classification, confidence)
+        else:
+            explanation = generate_local_explanation(std, requirement, classification, confidence)
 
-        # Build normative_references display:
-        # BIS-sourced referred standards are in normative_references as list of dicts
         norm_refs = std.get("normative_references") or []
-        # Also check legacy test_methods / related_standards fields
         test_methods = std.get("test_methods") or []
         amendments = std.get("amendments") or []
 
@@ -365,7 +423,6 @@ def run_analysis(
             "score": round(confidence, 3),
             "verification": verification,
             "evidence": evidence,
-            # BIS-extracted fields (source: BIS)
             "scope": std.get("scope") or None,
             "bis_status": std.get("bis_status") or std.get("status") or "Unknown",
             "normative_references": norm_refs,
@@ -376,13 +433,11 @@ def run_analysis(
             "related_standards": std.get("related_standards") or [],
             "cross_references": std.get("cross_references") or [],
             "data_source": std.get("data_source", "BIS"),
-            # Certification
             "certification": {
                 "status": cert_display,
                 "mandatory": cert_mandatory,
                 "scheme": std.get("certification_scheme") or None,
             },
-            # Lifecycle
             "lifecycle": {
                 "status": std.get("bis_status") or std.get("status", "Unknown"),
                 "number_of_revisions": std.get("number_of_revisions"),
@@ -403,8 +458,6 @@ def run_analysis(
             "completeness_level": get_completeness_level(std),
         }
 
-        # Route to correct bucket
-        # Route to correct bucket based on the explanation's recommendation level
         rec_level = explanation.get("recommendation_level") if isinstance(explanation, dict) else "ALLIED"
 
         if rec_level == "PRIMARY" and verification.get("eligible_for_recommendation"):
@@ -422,12 +475,63 @@ def run_analysis(
         else:
             result["allied_standards"]["related_products"].append(formatted)
 
-    result["timings"]["classification"] = round(time.time() - t_cls, 3)
-    result["timings"]["total"] = round(time.time() - t0, 3)
-    result["run_meta"] = run_meta
+    t_rank_ms = round((time.time() - t_rank) * 1000, 1)
+    print(f"[Timing] embedding/ranking: {t_rank_ms} ms")
+    print(f"[Ranking] completed: {len(result['primary_standards'])} primary, {sum(len(v) for v in result['allied_standards'].values())} allied standards")
 
-    print(f"[Pipeline] === COMPLETE in {result['timings']['total']}s ===")
-    print(f"[Pipeline]   Primary: {len(result['primary_standards'])} | Allied: {sum(len(v) for v in result['allied_standards'].values())}")
+    t_total_ms = round((time.time() - t0) * 1000, 1)
+    print(f"[Timing] total: {t_total_ms} ms")
+    print(f"[Pipeline] === COMPLETE in {t_total_ms / 1000:.3f}s ===")
+
+    # ----------------------------------------------------------
+    # STEP 5: PIPELINE STAGE FEEDBACK
+    # ----------------------------------------------------------
+    stages = [
+        {
+            "id": "requirement_understanding",
+            "name": "Requirement understanding",
+            "status": "completed" if run_meta.get("gemini_used") else "fallback",
+            "detail": "Gemini AI" if run_meta.get("gemini_used") else "Local fallback parser (Gemini unavailable)",
+            "timing_ms": t_req_ms,
+        },
+        {
+            "id": "bis_discovery",
+            "name": "BIS live discovery",
+            "status": "completed" if run_meta.get("live_bis_used") else "skipped",
+            "detail": f"{len(bis_candidates)} candidates found" if run_meta.get("live_bis_used") else (run_meta.get("bis_skipped_reason") or "Skipped"),
+            "timing_ms": t_bis_ms,
+        },
+        {
+            "id": "mongodb_retrieval",
+            "name": "MongoDB hybrid retrieval",
+            "status": "completed",
+            "detail": f"{len(mongo_candidates)} candidates retrieved",
+            "timing_ms": t_mongo_ms,
+        },
+        {
+            "id": "classification_and_ranking",
+            "name": "Verification & classification",
+            "status": "completed" if is_gemini_available() else "fallback",
+            "detail": "Gemini top-k classification" if is_gemini_available() else "Deterministic ranking engine (Gemini unavailable)",
+            "timing_ms": t_rank_ms,
+        },
+        {
+            "id": "report_generation",
+            "name": "Building recommendation report",
+            "status": "completed",
+            "detail": f"{len(result['primary_standards'])} primary, {sum(len(v) for v in result['allied_standards'].values())} allied standards",
+            "timing_ms": t_total_ms,
+        },
+    ]
+
+    result["stages"] = stages
+    result["timings"] = {
+        "requirement_parsing_ms": t_req_ms,
+        "mongodb_retrieval_ms": t_mongo_ms,
+        "bis_discovery_ms": t_bis_ms,
+        "ranking_ms": t_rank_ms,
+        "total_ms": t_total_ms,
+    }
 
     return result
 

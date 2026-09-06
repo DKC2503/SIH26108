@@ -17,34 +17,122 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
+import concurrent.futures
+
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 _client = None
+_GEMINI_AVAILABLE = True
+_GEMINI_CHECKED = False
+_GEMINI_DISABLE_REASON = ""
+
+
+def mark_gemini_unavailable(reason: str):
+    global _GEMINI_AVAILABLE, _GEMINI_DISABLE_REASON
+    if _GEMINI_AVAILABLE:
+        _GEMINI_AVAILABLE = False
+        _GEMINI_DISABLE_REASON = reason
+        print(f"[Gemini] UNAVAILABLE — {reason}")
+        print("[Gemini] Falling back to local intelligence pipeline")
+
+
+def is_gemini_available() -> bool:
+    global _GEMINI_AVAILABLE, _GEMINI_CHECKED
+    if not _GEMINI_CHECKED:
+        check_gemini_availability()
+    return _GEMINI_AVAILABLE
+
+
+def check_gemini_availability() -> bool:
+    global _GEMINI_AVAILABLE, _GEMINI_CHECKED, _GEMINI_DISABLE_REASON
+    if _GEMINI_CHECKED:
+        return _GEMINI_AVAILABLE
+    _GEMINI_CHECKED = True
+
+    key = os.getenv("GEMINI_API_KEY")
+    if not key or len(key.strip()) < 5:
+        mark_gemini_unavailable("Missing or empty GEMINI_API_KEY")
+        return False
+
+    try:
+        client = _get_client()
+
+        def _ping():
+            return client.models.generate_content(
+                model=MODEL,
+                contents="ping",
+                config=types.GenerateContentConfig(max_output_tokens=1),
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_ping)
+            future.result(timeout=5.0)
+
+        _GEMINI_AVAILABLE = True
+        print("[Gemini] AVAILABLE — API key verified successfully")
+        return True
+    except Exception as e:
+        err_msg = str(e)
+        mark_gemini_unavailable(f"Startup check failed: {err_msg}")
+        return False
+
 
 def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        if not GEMINI_API_KEY:
+        key = os.getenv("GEMINI_API_KEY")
+        if not key:
             raise ValueError("GEMINI_API_KEY is not set in .env")
-        _client = genai.Client(api_key=GEMINI_API_KEY)
+        _client = genai.Client(api_key=key)
     return _client
+
 
 MODEL = "gemini-3.6-flash"
 
-def _generate(system: str, prompt: str) -> str:
-    """Core generation function."""
-    client = _get_client()
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system,
-            temperature=0.1,
-        ),
-    )
-    return response.text or ""
+
+def _generate(system: str, prompt: str, timeout_sec: float = 15.0) -> str:
+    """Core generation function with timeout and fast error disable."""
+    if not is_gemini_available():
+        return ""
+
+    def _call():
+        client = _get_client()
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=0.1,
+            ),
+        )
+        return response.text or ""
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_call)
+            return future.result(timeout=timeout_sec)
+    except concurrent.futures.TimeoutError:
+        print(f"[Gemini] Request timed out after {timeout_sec}s")
+        return ""
+    except Exception as e:
+        err_msg = str(e)
+        print(f"[Gemini] Call failed: {err_msg}")
+        if any(
+            code in err_msg.lower()
+            for code in [
+                "400",
+                "invalid_argument",
+                "api key not valid",
+                "api_key_invalid",
+                "unauthenticated",
+                "permission_denied",
+                "forbidden",
+            ]
+        ):
+            mark_gemini_unavailable(f"Permanent auth/config error ({err_msg})")
+        return ""
 
 
 def _parse_json(text: str, fallback: Any = None) -> Any:

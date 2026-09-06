@@ -1,9 +1,22 @@
-FROM python:3.11-slim
+# Multi-stage Dockerfile for Node.js + Express + React/Vite
 
-# Install system dependencies for Playwright
+# Stage 1: Build the React client
+FROM node:20-slim AS client-builder
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm install
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Production runtime
+FROM node:20-slim AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8000
+
+# Install system dependencies for Playwright headless browser
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
     ca-certificates \
     fonts-liberation \
     libasound2 \
@@ -23,22 +36,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
-WORKDIR /app
+# Install backend production dependencies
+COPY package*.json ./
+RUN npm install --omit=dev
 
-# Copy requirements first for Docker layer caching
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Playwright browser binary
+RUN npx playwright install chromium
 
-# Install Playwright and Chromium
-RUN playwright install chromium
-RUN playwright install-deps chromium
+# Copy application server code and datasets
+COPY server/ ./server/
+COPY data/ ./data/
 
-# Copy project files
-COPY . .
+# Copy compiled frontend from Stage 1
+COPY --from=client-builder /app/client/dist ./client/dist
 
-# Expose port
+# Expose production port
 EXPOSE 8000
 
-# Start the FastAPI server
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Launch Express server
+CMD ["node", "server/index.js"]

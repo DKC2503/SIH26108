@@ -673,6 +673,15 @@
       <!-- Error box -->
       <div class="error-box" id="errorBox" style="display:none"></div>
 
+      <!-- Pipeline Execution Stages -->
+      <div class="stages-card" id="stagesCard" style="display:none; margin-bottom: 1.5rem; background: rgba(15,23,42,0.8); border: 1px solid var(--bg-card-border); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--brand-blue-light); text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+          <span>⚙️ Pipeline Execution Stages</span>
+          <span id="pipelineTotalTime" style="font-family: monospace; color: var(--text-muted); font-size: 11px;"></span>
+        </div>
+        <div id="stagesList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+
       <!-- Requirement Understanding -->
       <div class="req-card" id="reqCard" style="display:none">
         <div class="req-title">📋 Requirement Understanding</div>
@@ -883,14 +892,26 @@
             language: document.getElementById('langSelect').value,
             enable_bis_discovery: document.getElementById('bisDiscovery').checked,
           };
-          const resp = await fetch(`${API_BASE}/api/analyze`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          data = await resp.json();
-          if (!resp.ok) throw new Error(data.detail || 'Analysis failed');
-          renderResult(data);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 45000);
+          try {
+            const resp = await fetch(`${API_BASE}/api/analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || 'Analysis failed');
+            renderResult(data);
+          } catch (fetchErr) {
+            clearTimeout(timeoutId);
+            if (fetchErr.name === 'AbortError') {
+              throw new Error('API request timed out after 45 seconds. Please try again.');
+            }
+            throw fetchErr;
+          }
         }
 
       } catch (err) {
@@ -907,6 +928,11 @@
     ============================================================ */
     function renderResult(data) {
       showResults();
+
+      // Stages Feedback
+      if (data.stages) {
+        renderStages(data.stages, data.timings);
+      }
 
       // Requirement
       const req = data.requirement || {};
@@ -984,6 +1010,44 @@
     /* ============================================================
        RENDER HELPERS
     ============================================================ */
+    function renderStages(stages, timings) {
+      if (!stages || !stages.length) return;
+      const card = document.getElementById('stagesCard');
+      card.style.display = 'block';
+      if (timings && timings.total_ms) {
+        document.getElementById('pipelineTotalTime').textContent = `Total: ${(timings.total_ms/1000).toFixed(2)}s`;
+      }
+      const statusIcons = {
+        completed: '✓',
+        fallback: '⚠️',
+        warning: '⚠️',
+        skipped: '⏭️',
+        failed: '❌'
+      };
+      const statusClasses = {
+        completed: 'color: var(--green);',
+        fallback: 'color: var(--yellow);',
+        warning: 'color: var(--yellow);',
+        skipped: 'color: var(--text-muted);',
+        failed: 'color: var(--red);'
+      };
+      document.getElementById('stagesList').innerHTML = stages.map(s => {
+        const icon = statusIcons[s.status] || '•';
+        const style = statusClasses[s.status] || '';
+        const timing = s.timing_ms ? ` (${(s.timing_ms/1000).toFixed(2)}s)` : '';
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="${style} font-weight: bold;">${icon}</span>
+              <span style="font-weight: 600; color: var(--text-primary);">${esc(s.name)}</span>
+              <span style="color: var(--text-muted); font-size: 12px;">— ${esc(s.detail || '')}</span>
+            </div>
+            <span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">${timing}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderRequirement(req) {
       const card = document.getElementById('reqCard');
       card.style.display = 'block';
@@ -1354,6 +1418,8 @@
       document.getElementById('tenderSection').style.display = 'none';
       document.getElementById('sourcesSection').style.display = 'none';
       document.getElementById('reqCard').style.display = 'none';
+      document.getElementById('stagesCard').style.display = 'none';
+      document.getElementById('stagesList').innerHTML = '';
       document.getElementById('primaryGrid').innerHTML = '';
       document.getElementById('alliedGrid').innerHTML = '';
       document.getElementById('tenderGrid').innerHTML = '';

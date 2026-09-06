@@ -14,17 +14,24 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 
-def discover_standards_by_keyword(keyword: str, limit: int = 5) -> list:
+import concurrent.futures
+
+
+def discover_standards_by_keyword(keyword: str, limit: int = 5, timeout_sec: float = 25.0) -> list:
     """
-    Trigger the existing playwright-based BIS discovery.
+    Trigger the existing playwright-based BIS discovery with a hard timeout.
     After scraping, fetches full MongoDB records for each discovered standard.
     Returns list of full standard dicts (not just {is_number, detail_url}).
     """
     try:
         from collect_standards import collect_from_keyword
 
-        # collect_from_keyword now returns full MongoDB records
-        raw_results = collect_from_keyword(keyword=keyword, limit=limit)
+        def _run():
+            return collect_from_keyword(keyword=keyword, limit=limit)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run)
+            raw_results = future.result(timeout=timeout_sec)
 
         if not raw_results:
             return []
@@ -37,6 +44,9 @@ def discover_standards_by_keyword(keyword: str, limit: int = 5) -> list:
 
         return raw_results
 
+    except concurrent.futures.TimeoutError:
+        print(f"[BIS Discovery] Timed out after {timeout_sec}s for '{keyword}'")
+        return []
     except Exception as e:
         print(f"[BIS Discovery] Error for '{keyword}': {e}")
         return []

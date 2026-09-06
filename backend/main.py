@@ -56,21 +56,50 @@ class AnalyzeRequest(BaseModel):
     enable_bis_discovery: bool = True
 
 
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    from backend.ai.gemini_client import check_gemini_availability
+    from backend.db_client import check_mongo_availability
+    
+    check_gemini_availability()
+    
+    def _bg_warmup():
+        try:
+            check_mongo_availability()
+        except Exception as e:
+            print(f"[MongoDB] Startup check notice: {e}")
+        try:
+            from backend.services.retrieval import _get_embedding_model
+            print("[Embedding] Pre-warming SentenceTransformer model...")
+            _get_embedding_model()
+            print("[Embedding] Model pre-warmed successfully.")
+        except Exception as e:
+            print(f"[Embedding] Pre-warm notice: {e}")
+
+    asyncio.create_task(asyncio.to_thread(_bg_warmup))
+
+
 # ============================================================
 # HEALTH CHECK
 # ============================================================
 
 @app.get("/api/health")
 async def health():
-    from backend.db_client import get_standards_collection
-    try:
-        count = get_standards_collection().count_documents({})
-        mongo_status = f"ok — {count} standards"
-    except Exception as e:
-        mongo_status = f"error: {e}"
+    from backend.db_client import is_mongo_available, _MONGO_DISABLE_REASON, get_standards_collection
+    from backend.ai.gemini_client import is_gemini_available, _GEMINI_DISABLE_REASON
+    
+    if is_mongo_available():
+        try:
+            count = get_standards_collection().count_documents({})
+            mongo_status = f"ok — {count} standards"
+        except Exception as e:
+            mongo_status = f"error: {e}"
+    else:
+        mongo_status = f"UNAVAILABLE — {_MONGO_DISABLE_REASON or 'Atlas connection offline'}"
 
-    gemini_key = bool(os.getenv("GEMINI_API_KEY"))
-    gemini_status = "configured" if gemini_key else "MISSING — set GEMINI_API_KEY in .env"
+    gemini_avail = is_gemini_available()
+    gemini_status = "AVAILABLE" if gemini_avail else f"UNAVAILABLE — {_GEMINI_DISABLE_REASON or 'Local fallback'}"
 
     return {
         "status": "ok",
@@ -181,4 +210,7 @@ async def serve_js():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    import sys
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    uvicorn.run(app, host="0.0.0.0", port=8000)
