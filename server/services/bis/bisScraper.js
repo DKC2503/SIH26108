@@ -98,28 +98,33 @@ export function extractIsNumberFromText(text) {
   return null;
 }
 
+const OVERLY_BROAD_WORDS = new Set([
+  "bar", "bars", "light", "lights", "pipe", "pipes", "water", "tank", "tanks",
+  "chair", "chairs", "pen", "pens", "wire", "wires", "bottle", "bottles", "tube", "tubes",
+  "valve", "valves", "plate", "plates", "sheet", "sheets", "pump", "pumps"
+]);
+
 /**
  * Scrape BIS Standards Portal for a keyword or query.
- * Falls back across candidate query terms if primary returns 0 results.
+ * Falls back across candidate query terms while preserving product meaning.
  */
 export async function scrapeBisKeyword(keyword, limit = 6, timeoutMs = 12000) {
   if (!keyword || !keyword.trim()) return [];
   const rawKw = keyword.trim();
   console.log(`[BIS] Starting live discovery for: '${rawKw}'`);
 
-  // Build candidate search terms (e.g. "electric transformer" -> ["electric transformer", "transformer"])
+  // Build candidate search terms while strictly avoiding overly broad one-word terms
   const searchTerms = [rawKw];
-  const words = rawKw.split(/\s+/).filter(w => w.length > 3);
-  if (words.length > 1) {
-    // Also try the last prominent noun (e.g., "transformer" from "electric transformer", "chair" from "office chair")
-    const lastWord = words[words.length - 1];
-    if (!searchTerms.includes(lastWord)) {
-      searchTerms.push(lastWord);
-    }
-    // Also try the first two words
+  const words = rawKw.split(/\s+/).filter(w => w.length > 2);
+
+  if (words.length > 2) {
     const firstTwo = words.slice(0, 2).join(" ");
-    if (!searchTerms.includes(firstTwo)) {
+    if (!searchTerms.includes(firstTwo) && !OVERLY_BROAD_WORDS.has(firstTwo.toLowerCase())) {
       searchTerms.push(firstTwo);
+    }
+    const lastTwo = words.slice(-2).join(" ");
+    if (!searchTerms.includes(lastTwo) && !OVERLY_BROAD_WORDS.has(lastTwo.toLowerCase())) {
+      searchTerms.push(lastTwo);
     }
   }
 
@@ -182,8 +187,8 @@ export async function scrapeBisKeyword(keyword, limit = 6, timeoutMs = 12000) {
             results.push({
               is_number: isNum,
               title: c.title !== c.rawHeader && c.title.length > 3 ? c.title : `Indian Standard ${isNum}`,
-              detail_url: c.href || searchUrl,
-              official_bis_url: c.href || searchUrl,
+              detail_url: c.href || "",
+              official_bis_url: c.href || "",
               bis_status: "Active",
               status: "Active",
               category: "BIS Portal Discovered",

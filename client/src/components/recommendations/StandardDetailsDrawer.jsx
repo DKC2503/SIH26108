@@ -81,10 +81,17 @@ export default function StandardDetailsDrawer({
                   <span className="badge badge-warning">{status.toUpperCase()}</span>
                 )}
 
-                {isBisLive ? (
-                  <span className="badge badge-gold">BIS LIVE DISCOVERED</span>
-                ) : (
-                  <span className="badge badge-verified">BIS VERIFIED</span>
+                {isBisLive && (
+                  <span className="badge badge-gold">LIVE BIS VERIFIED</span>
+                )}
+                {!isBisLive && (standard.verification_source === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE') && (
+                  <span className="badge badge-verified">LOCAL VERIFIED INDEX</span>
+                )}
+                {!isBisLive && (standard.verification_source === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE') && (
+                  <span className="badge badge-blue">MONGODB CACHED</span>
+                )}
+                {!isBisLive && standard.verification_source !== 'official_bis_cache' && standard.data_source !== 'LOCAL_KNOWLEDGE_BASE' && standard.verification_source !== 'mongodb_cache' && standard.data_source !== 'MONGODB_CACHE' && (
+                  <span className="badge badge-warning">UNVERIFIED</span>
                 )}
               </div>
 

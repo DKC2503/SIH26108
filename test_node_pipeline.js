@@ -1,38 +1,98 @@
 import { runFastAnalysis } from './server/services/recommendation/recommendationEngine.js';
 
-const testQueries = [
-  "ball point pen for office use",
-  "LED lamp",
-  "90W LED street lights for outdoor road lighting with IP66 protection",
-  "HDPE plastic water storage tanks for drinking water",
-  "Ordinary Portland Cement 43 Grade for school building construction"
+const canonicalQueries = [
+  { q: "wheat", expectedIs: "IS 14864:2000", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "cement", expectedIs: "IS 269:2015", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "helmet", expectedIs: "IS 2925:1984", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "fire extinguisher", expectedIs: "IS 15683:2018", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "LED street light", expectedIs: "IS 10322 (Part 5/Sec 3):2012", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "high tensile rebar", expectedIs: "IS 1786:2008", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "ball point pen", expectedIs: "IS 3705:2024", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "water bottle", expectedIs: "IS 17803:2022", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "HDPE pipe", expectedIs: "IS 4984:2016", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "brick", expectedPrimary: "IS 1077:1992", expectedAllied: "IS 3495 (Parts 1 to 4):2019" },
+  { q: "IS 3495:2019", expectedIs: "IS 3495 (Parts 1 to 4):2019", isDirect: true },
+  { q: "IS 1077:1992", expectedIs: "IS 1077:1992", isDirect: true },
+  { q: "airplane engine", expectNoMatch: true }
 ];
 
 async function run() {
-  console.log("====================================================");
-  console.log("RUNNING TEST SUITE: 5 CANONICAL PROCUREMENT QUERIES");
-  console.log("====================================================");
+  console.log("================================================================================");
+  console.log(" BIS RECOMMENDATION & VERIFICATION PIPELINE TEST SUITE");
+  console.log(" SIH 2026 Problem Statement: 26108");
+  console.log("================================================================================");
 
-  for (const q of testQueries) {
+  let passed = 0;
+  let failed = 0;
+
+  for (const item of canonicalQueries) {
     const start = performance.now();
-    const result = await runFastAnalysis(q, "product_description", false);
+    const result = await runFastAnalysis(item.q, "product_description", false);
     const duration = performance.now() - start;
 
-    console.log(`\n[QUERY]: "${q}"`);
-    console.log(`  Total Latency: ${duration.toFixed(2)} ms`);
-    console.log(`  Identified Product: ${result.requirement.product || 'N/A'}`);
-    console.log(`  Primary Standards: ${result.primary_standards.map(s => s.is_number).join(', ') || 'None'}`);
-    const alliedCount = Object.values(result.allied_standards).reduce((acc, arr) => acc + arr.length, 0);
-    console.log(`  Allied Standards Count: ${alliedCount}`);
-    console.log(`  Stage Timings (ms):`, result.timings);
+    console.log(`\n--------------------------------------------------------------------------------`);
+    console.log(`QUERY: "${item.q}" (Time: ${duration.toFixed(2)} ms)`);
+    console.log(`  Identified Product : ${result.requirement.product}`);
+    console.log(`  Identified Industry: ${result.requirement.industry}`);
+    console.log(`  Status             : ${result.status}`);
 
-    if (result.primary_standards.length > 0) {
-      const top = result.primary_standards[0];
-      console.log(`  Top Recommendation: ${top.is_number} - ${top.title} (Score: ${(top.score * 100).toFixed(1)}%)`);
-      console.log(`  Trust Badge: ${top.verification.ui_badge} (${top.verification.status})`);
-      console.log(`  Reason: ${top.explanation}`);
+    const primaryList = result.primary_standards.map(s => s.is_number);
+    console.log(`  Primary Standards  : ${primaryList.join(', ') || 'None'}`);
+
+    const testMethods = result.allied_standards?.test_methods?.map(s => s.is_number) || [];
+    console.log(`  Allied Test Methods: ${testMethods.join(', ') || 'None'}`);
+
+    // Verification checks
+    let testPass = true;
+
+    // Check: IS 3495 must never appear as primary for unrelated queries
+    if (item.q !== "brick" && item.q !== "IS 3495:2019") {
+      if (primaryList.some(num => num.includes("3495"))) {
+        console.error(`  [FAIL]: Unrelated IS 3495 appeared as primary recommendation!`);
+        testPass = false;
+      }
     }
+
+    if (item.expectNoMatch) {
+      if (result.primary_standards.length === 0) {
+        console.log(`  [PASS]: Correctly returned no false primary recommendation for unsupported query.`);
+      } else {
+        console.error(`  [FAIL]: Expected no match, but got primary: ${primaryList}`);
+        testPass = false;
+      }
+    } else if (item.expectedPrimary) {
+      if (primaryList.includes(item.expectedPrimary) && testMethods.includes(item.expectedAllied)) {
+        console.log(`  [PASS]: Correctly designated ${item.expectedPrimary} as Primary and ${item.expectedAllied} as Allied Test Method.`);
+      } else {
+        console.error(`  [FAIL]: Expected Primary ${item.expectedPrimary} and Allied ${item.expectedAllied}`);
+        testPass = false;
+      }
+    } else if (item.expectedIs) {
+      if (primaryList.includes(item.expectedIs)) {
+        const top = result.primary_standards.find(s => s.is_number === item.expectedIs);
+        console.log(`  [PASS]: Matched ${item.expectedIs} with score ${(top.score * 100).toFixed(0)}%`);
+        console.log(`  Source Badge       : ${top.verification.ui_badge}`);
+        console.log(`  Why Recommended    : ${top.explanation}`);
+      } else {
+        console.error(`  [FAIL]: Expected ${item.expectedIs} in primary standards.`);
+        testPass = false;
+      }
+    }
+
+    if (testPass) passed++;
+    else failed++;
+  }
+
+  console.log(`\n================================================================================`);
+  console.log(`TEST SUMMARY: ${passed} PASSED, ${failed} FAILED (TOTAL: ${canonicalQueries.length})`);
+  console.log(`================================================================================`);
+
+  if (failed > 0) {
+    process.exit(1);
   }
 }
 
-run().catch(console.error);
+run().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

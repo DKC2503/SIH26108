@@ -39,36 +39,43 @@ export function determineVerificationStatus(standard) {
 
   const errorCount = issues.filter(i => i.severity === "ERROR").length;
   const lsLower = lifecycleStatus.toLowerCase();
-  const source = standard.verification_source || "official_bis_cache";
+  const rawSource = standard.verification_source || standard.data_source || "official_bis_cache";
 
-  let finalStatus = "verified";
+  let finalStatus = "unverified";
   let eligibleFinal = true;
-  let badge = "[BIS VERIFIED] BIS Verified - Current";
+  let sourceLabel = "UNVERIFIED";
+  let badge = "[UNVERIFIED] Unverified Standard";
 
   if (WITHDRAWN_WORDS.has(lsLower)) {
-    finalStatus = "failed";
+    finalStatus = "withdrawn";
     eligibleFinal = false;
-    badge = "[DO NOT RECOMMEND] Withdrawn/Superseded";
-  } else if (source === "official_bis_live") {
-    finalStatus = "verified";
+    sourceLabel = "WITHDRAWN";
+    badge = "[DO NOT RECOMMEND] Withdrawn / Superseded";
+  } else if (rawSource === "official_bis_live" || standard.data_source === "BIS_LIVE") {
+    finalStatus = "live_verified";
     eligibleFinal = true;
+    sourceLabel = "LIVE BIS VERIFIED";
     badge = "[LIVE BIS VERIFIED] Live BIS Portal";
-  } else if (source === "official_bis_cache") {
-    finalStatus = "verified";
+  } else if (rawSource === "official_bis_cache" || standard.data_source === "LOCAL_KNOWLEDGE_BASE") {
+    finalStatus = "local_verified";
     eligibleFinal = true;
-    badge = "[BIS VERIFIED] BIS Verified - Current";
-  } else if (source === "mongodb_cache") {
-    finalStatus = "cache_only";
+    sourceLabel = "LOCAL VERIFIED INDEX";
+    badge = "[LOCAL VERIFIED INDEX] Local Verified Index";
+  } else if (rawSource === "mongodb_cache" || standard.data_source === "MONGODB_CACHE") {
+    finalStatus = "mongodb_cached";
     eligibleFinal = true;
-    badge = "[CACHE ONLY] MongoDB Cache";
+    sourceLabel = "MONGODB CACHED";
+    badge = "[MONGODB CACHED] MongoDB Cache";
   } else if (errorCount > 0) {
     finalStatus = "needs_verification";
     eligibleFinal = false;
-    badge = "[NEEDS VERIFICATION] BIS Data Needs Verification";
-  } else if (!lastVerified) {
-    finalStatus = "unknown";
+    sourceLabel = "UNVERIFIED";
+    badge = "[NEEDS VERIFICATION] Needs Verification";
+  } else {
+    finalStatus = "unverified";
     eligibleFinal = true;
-    badge = "[NOT VERIFIED] Not Yet BIS Verified";
+    sourceLabel = "UNVERIFIED";
+    badge = "[UNVERIFIED] Unverified Standard";
   }
 
   return {
@@ -76,9 +83,10 @@ export function determineVerificationStatus(standard) {
     eligible_for_recommendation: eligibleFinal,
     issues: issues,
     ui_badge: badge,
+    source_label: sourceLabel,
     lifecycle_status: lifecycleStatus,
     last_verified: lastVerified,
-    source: source
+    source: rawSource
   };
 }
 

@@ -6,6 +6,17 @@ import { STOP_WORDS } from '../recommendation/requirementParser.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Generic specification words that must NEVER contribute to product relevance
+export const GENERIC_SPEC_WORDS = new Set([
+  "test", "tests", "testing", "method", "methods", "requirements", "requirement",
+  "specification", "specifications", "standard", "standards", "quality", "general",
+  "use", "uses", "application", "applications", "determination", "procedure", "procedures",
+  "sampling", "code", "codes", "practice", "practices", "guideline", "guidelines",
+  "part", "parts", "section", "sections", "grade", "grades", "type", "types",
+  "class", "classes", "is", "indian", "specifies", "provisions", "prescribes",
+  "covers", "suitable", "purpose", "purposes", "product", "products", "item", "items"
+]);
+
 // In-memory pre-indexed standards cache
 let inMemoryStandards = [];
 let localIndexStatus = "uninitialized";
@@ -21,10 +32,54 @@ export function normalize(text) {
   }
   return String(text)
     .toLowerCase()
-    .replace(/[–—\-_/]/g, " ")
-    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/[–—\-_/()]/g, " ")
+    .replace(/[^a-z0-9\s:]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Extract meaningful product words (excluding stopwords and generic specification words)
+ */
+export function extractProductWords(text) {
+  return normalize(text)
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w) && !GENERIC_SPEC_WORDS.has(w));
+}
+
+/**
+ * Strict plural/stem word matcher.
+ * Never matches random substrings or short prefixes.
+ */
+function wordsMatch(w1, w2) {
+  if (w1 === w2) return true;
+  if (w1.length >= 3 && w2.length >= 3) {
+    if (w1 + "s" === w2 || w2 + "s" === w1) return true;
+    if (w1 + "es" === w2 || w2 + "es" === w1) return true;
+    if (w1.endsWith("ies") && w1.slice(0, -3) + "y" === w2) return true;
+    if (w2.endsWith("ies") && w2.slice(0, -3) + "y" === w1) return true;
+  }
+  return false;
+}
+
+/**
+ * Check if query directly matches standard's IS number
+ */
+function checkIsNumberMatch(query, stdIsNumber) {
+  if (!query || !stdIsNumber) return false;
+  const qClean = normalize(query).replace(/\s+/g, "");
+  const stdClean = normalize(stdIsNumber).replace(/\s+/g, "");
+
+  // Exact full match
+  if (qClean === stdClean) return true;
+
+  // Match IS number without year (e.g. "is 3495" matches "is 3495:2019" or "is 3495 (parts 1 to 4):2019")
+  const stdBase = stdClean.split(":")[0];
+  const qBase = qClean.split(":")[0];
+
+  if (qClean === stdBase || qBase === stdClean) return true;
+  if (stdBase.includes(qBase) && qBase.length >= 5) return true;
+  return false;
 }
 
 /**
@@ -46,82 +101,155 @@ export function buildStandardText(std) {
 }
 
 /**
- * Word overlap scoring
+ * Word overlap scoring on meaningful product keywords only
  */
-export function calculateWordOverlap(query, text) {
-  const qWords = normalize(query).split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
-  if (qWords.length === 0) return 0.0;
-  const tWords = new Set(normalize(text).split(/\s+/));
+export function calculateWordOverlap(productWords, targetText) {
+  if (!productWords || productWords.length === 0) return 0.0;
+  const targetWords = normalize(targetText).split(/\s+/);
   let matchCount = 0;
-  for (const qw of qWords) {
-    if (tWords.has(qw)) {
+
+  for (const pw of productWords) {
+    if (targetWords.some(tw => wordsMatch(pw, tw))) {
       matchCount++;
-    } else {
-      // Check prefix/stem overlap (e.g. pen vs pens, lamp vs lamps)
-      for (const tw of tWords) {
-        if (tw.startsWith(qw) || qw.startsWith(tw)) {
-          matchCount += 0.8;
-          break;
-        }
-      }
     }
   }
-  return Math.min(1.0, matchCount / qWords.length);
+
+  return matchCount / productWords.length;
+}
+
+/**
+ * Exact word-boundary phrase matcher.
+ * Prevents "reinforcement" matching "cement", and "water bottled" matching "water bottle".
+ */
+export function matchesPhrase(targetText, phrase) {
+  if (!targetText || !phrase) return false;
+  const arr = Array.isArray(targetText) ? targetText : [targetText];
+  const pWords = normalize(phrase).split(/\s+/).filter(Boolean);
+  if (pWords.length === 0) return false;
+  const pPattern = pWords.map(w => w.length >= 3 ? `${w}(?:s|es)?` : w).join('\\s+');
+  const rx = new RegExp(`\\b${pPattern}\\b`, 'i');
+  return arr.some(t => rx.test(normalize(t)));
 }
 
 /**
  * Phrase match score
  */
 export function calculatePhraseScore(product, std) {
-  const p = normalize(product);
-  if (!p) return 0.0;
+  if (!product) return 0.0;
 
-  const title = normalize(std.title || "");
-  const subCat = normalize(std.sub_category || "");
-  const kw = normalize(Array.isArray(std.product_keywords) ? std.product_keywords.join(" ") : "");
-  const scope = normalize(std.scope || "");
+  if (matchesPhrase(std.title, product)) return 1.0;
+  if (matchesPhrase(std.product_keywords, product)) return 0.95;
+  if (matchesPhrase(std.sub_category, product)) return 0.90;
+  if (matchesPhrase(std.scope, product)) return 0.70;
 
-  if (title.includes(p)) return 1.0;
-  if (subCat.includes(p)) return 0.95;
-  if (kw.includes(p)) return 0.90;
-  if (scope.includes(p)) return 0.80;
-
-  // Partial phrase words match in title
-  const pWords = p.split(/\s+/).filter(w => w.length > 2);
-  if (pWords.length > 0 && pWords.every(w => title.includes(w))) {
-    return 0.85;
+  // Check if all product words appear in title
+  const pWords = extractProductWords(product);
+  if (pWords.length > 1) {
+    const titleWords = normalize(std.title || "").split(/\s+/);
+    let allFound = true;
+    for (const pw of pWords) {
+      if (!titleWords.some(tw => wordsMatch(pw, tw))) {
+        allFound = false;
+        break;
+      }
+    }
+    if (allFound) return 0.85;
   }
 
   return 0.0;
 }
 
 /**
- * Fast composite scoring (< 0.1ms per standard)
+ * Robust domain/industry compatibility check
+ */
+function checkDomainCompatibility(requirementIndustry, std) {
+  if (!requirementIndustry || requirementIndustry === "general") return 0;
+
+  const stdCat = normalize(`${std.category || ""} ${std.sub_category || ""} ${std.department || ""}`);
+
+  // Incompatible domain pairings
+  const incompatibilities = {
+    food: ["civil engineering", "clay products", "pipe", "cement", "electrical", "stationery"],
+    stationery: ["civil engineering", "clay products", "food", "cement", "pipe"],
+    construction: ["food", "drinks", "stationery", "cosmetics"],
+    electrical: ["food", "clay products", "stationery", "drinks"],
+    plumbing: ["food", "stationery", "textiles"]
+  };
+
+  const blockedCategories = incompatibilities[requirementIndustry] || [];
+  for (const blocked of blockedCategories) {
+    if (stdCat.includes(blocked)) {
+      return -0.40; // Substantial penalty for cross-domain collision
+    }
+  }
+
+  return 0.05; // Modest bonus for compatible domain
+}
+
+/**
+ * Fast composite scoring with strict relevance hierarchy (< 0.1ms per standard)
  */
 export function scoreStandard(std, requirement) {
   const product = requirement.product || "";
   const productType = requirement.product_type || "";
   const material = requirement.material || "";
+  const industry = requirement.industry || "general";
 
-  // Check direct IS number query
-  const normIs = normalize(std.is_number || "");
-  const normP = normalize(product);
-  if (normIs && normP && (normIs.includes(normP) || normP.includes(normIs.replace(/\s+/g, '')))) {
+  // Check direct IS number query (Highest priority: 0.99)
+  const isDirectMatch = checkIsNumberMatch(product, std.is_number) ||
+    checkIsNumberMatch(requirement.is_number_query, std.is_number);
+
+  if (isDirectMatch) {
     return {
-      score: 0.98,
+      score: 0.99,
       phrase_score: 1.0,
       overlap: 1.0,
-      material_match: 1.0
+      material_match: 1.0,
+      is_direct_is_match: true,
+      evidence: `Exact match for Indian Standard ${std.is_number}`
     };
   }
 
+  const pWords = extractProductWords(product);
+
+  // If query had no meaningful product words (e.g. only stop words), return 0
+  if (pWords.length === 0) {
+    return {
+      score: 0.0,
+      phrase_score: 0.0,
+      overlap: 0.0,
+      material_match: 0.0,
+      is_direct_is_match: false
+    };
+  }
+
+  // 1. Phrase matching
   let phrase = calculatePhraseScore(product, std);
 
-  if (productType && productType !== "unknown") {
-    const phraseType = calculatePhraseScore(productType.replace(/_/g, " "), std);
+  if (productType && productType !== "unknown" && productType !== "is_standard" && productType !== "is_standard_query") {
+    const typeClean = productType.replace(/_/g, " ");
+    const phraseType = calculatePhraseScore(typeClean, std);
     phrase = Math.max(phrase, phraseType * 0.9);
   }
 
+  // 2. Keyword & Title overlap
+  const titleOverlap = calculateWordOverlap(pWords, std.title || "");
+  const kwOverlap = calculateWordOverlap(pWords, Array.isArray(std.product_keywords) ? std.product_keywords.join(" ") : "");
+  const scopeOverlap = calculateWordOverlap(pWords, std.scope || "");
+  const textOverlap = (0.50 * titleOverlap) + (0.35 * kwOverlap) + (0.15 * scopeOverlap);
+
+  // If zero product words match anywhere in title or keywords, this standard is NOT relevant
+  if (titleOverlap === 0 && kwOverlap === 0 && phrase === 0) {
+    return {
+      score: 0.0,
+      phrase_score: 0.0,
+      overlap: 0.0,
+      material_match: 0.0,
+      is_direct_is_match: false
+    };
+  }
+
+  // 3. Material match
   let materialMatch = 0.0;
   if (material) {
     const stdText = normalize(`${std.title || ""} ${std.scope || ""}`);
@@ -130,21 +258,41 @@ export function scoreStandard(std, requirement) {
     }
   }
 
-  const overlap = calculateWordOverlap(product, buildStandardText(std));
+  // 4. Domain compatibility penalty / bonus
+  const domainDelta = checkDomainCompatibility(industry, std);
 
-  // High confidence match bonus
-  let finalScore = (0.50 * phrase) + (0.35 * overlap) + (0.15 * materialMatch);
+  // 5. Test method vs Product Specification penalty
+  // A test method standard should NOT score higher than a product specification for the same product
+  const titleLower = (std.title || "").toLowerCase();
+  const isTestMethod = titleLower.includes("methods of test") ||
+    titleLower.includes("method of test") ||
+    titleLower.includes("determination of") ||
+    std.type_of_standard === "Test Method";
 
-  // If title has direct product match, give primary boost
-  if (phrase >= 0.85) {
-    finalScore = Math.max(finalScore, 0.85);
+  const userAskedForTest = pWords.some(w => ["test", "testing", "sampling", "method"].includes(w));
+  let testMethodPenalty = 0.0;
+  if (isTestMethod && !userAskedForTest) {
+    testMethodPenalty = 0.15; // Ensure product specification ranks ahead of test method
   }
+
+  // Calculate composite score
+  let finalScore = (0.50 * phrase) + (0.35 * textOverlap) + (0.15 * materialMatch) + domainDelta - testMethodPenalty;
+
+  // If title has direct product match and is a product specification, boost score
+  if (phrase >= 0.85 && !isTestMethod) {
+    finalScore = Math.max(finalScore, 0.85);
+  } else if (phrase >= 0.85 && isTestMethod) {
+    finalScore = Math.min(finalScore, 0.72); // Cap test method score below primary product specification
+  }
+
+  finalScore = Math.max(0.0, Math.min(1.0, finalScore));
 
   return {
     score: Math.round(finalScore * 1000) / 1000,
     phrase_score: Math.round(phrase * 1000) / 1000,
-    overlap: Math.round(overlap * 1000) / 1000,
-    material_match: Math.round(materialMatch * 1000) / 1000
+    overlap: Math.round(textOverlap * 1000) / 1000,
+    material_match: Math.round(materialMatch * 1000) / 1000,
+    is_direct_is_match: false
   };
 }
 
@@ -196,11 +344,14 @@ export function searchLocalStandards(requirement, limit = 15) {
 
   for (const std of inMemoryStandards) {
     const details = scoreStandard(std, requirement);
-    scored.push({
-      standard: { ...std },
-      score: details.score,
-      score_details: details
-    });
+    // Only return candidates that have non-zero score
+    if (details.score > 0) {
+      scored.push({
+        standard: { ...std },
+        score: details.score,
+        score_details: details
+      });
+    }
   }
 
   scored.sort((a, b) => b.score - a.score);

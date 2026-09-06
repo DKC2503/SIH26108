@@ -57,8 +57,8 @@ export default function Recommendations({
   } else if (filterType === 'allied') {
     displayPrimary = [];
   } else if (filterType === 'verified') {
-    displayPrimary = displayPrimary.filter(s => s.verification?.status === 'verified' || s.verification_source === 'official_bis_live');
-    displayAllied = displayAllied.filter(s => s.verification?.status === 'verified' || s.verification_source === 'official_bis_live');
+    displayPrimary = displayPrimary.filter(s => ['live_verified', 'local_verified', 'verified'].includes(s.verification?.status) || s.verification_source === 'official_bis_live' || s.verification_source === 'official_bis_cache');
+    displayAllied = displayAllied.filter(s => ['live_verified', 'local_verified', 'verified'].includes(s.verification?.status) || s.verification_source === 'official_bis_live' || s.verification_source === 'official_bis_cache');
   }
 
   // Sort logic

@@ -8,6 +8,7 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "build": "cd client && npm install && npm run build",
+    "render-build": "npx playwright install chromium && cd client && npm install && npm run build",
     "test": "node test_node_pipeline.js"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase": "^12.18.0",
     "helmet": "^8.0.0",
     "mongodb": "^6.13.0",
     "multer": "^1.4.5-lts.1",

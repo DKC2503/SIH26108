@@ -17,7 +17,7 @@ export const STOP_WORDS = new Set([
 // Product aliases map: [regex, product, product_type]
 export const PRODUCT_ALIASES = [
   // Direct standard query
-  [/\b(IS\s*\d+(?:\s*\(?\s*PART\s*\d+(?:\s*\/\s*SEC\s*\d+)?\s*\)?)?(?:\s*:\s*\d{4})?)\b/i, null, "is_standard_query"],
+  [/\b(IS\s*\d+(?:\s*\(?\s*PART\s*[\d\w\s/-]+\s*\)?)?(?:\s*:\s*\d{4})?)\b/i, null, "is_standard_query"],
 
   // Cement variants
   [/\bmasonry cement\b/i, "cement", "masonry_cement"],
@@ -33,8 +33,9 @@ export const PRODUCT_ALIASES = [
   [/\bcement\b/i, "cement", "cement"],
 
   // Steel & Rebar
-  [/\btmt bars?\b/i, "steel bar", "tmt_bar"],
+  [/\bhigh tensile (?:steel )?rebars?\b/i, "steel bar", "high_tensile_rebar"],
   [/\bhigh strength deformed steel bars?\b/i, "steel bar", "tmt_bar"],
+  [/\btmt bars?\b/i, "steel bar", "tmt_bar"],
   [/\brebars?\b/i, "steel bar", "rebar"],
   [/\b(?:steel )?structural components?\b/i, "structural steel", "structural_steel"],
   [/\bstructural steel\b/i, "structural steel", "structural_steel"],
@@ -53,7 +54,7 @@ export const PRODUCT_ALIASES = [
   [/\bchairs?\b/i, "chair", "chair"],
 
   // Fire safety
-  [/\bfire extinguishers?\b/i, "fire extinguisher", "fire_extinguisher"],
+  [/\b(?:portable\s+)?fire extinguishers?\b|\bextinguishers?\b/i, "fire extinguisher", "fire_extinguisher"],
 
   // Bridges & Infrastructure
   [/\b(?:underground\s+)?bridges?\b/i, "bridge", "bridge"],
@@ -95,6 +96,7 @@ export const PRODUCT_ALIASES = [
 
   // Food
   [/\bwheat flour\b|\batta\b/i, "wheat flour", "packaged_wheat_flour"],
+  [/\bwheat(?:\s+grains?)?\b/i, "wheat", "wheat_grain"],
   [/\bedible oil\b/i, "edible oil", "packaged_edible_oil"],
 
   // Bricks
@@ -108,6 +110,7 @@ export const PRODUCT_ALIASES = [
 
   // Safety
   [/\b(?:industrial\s+)?(?:safety\s+)?helmets?\b/i, "safety helmet", "safety_helmet"],
+  [/\bhelmets?\b/i, "safety helmet", "safety_helmet"],
   [/\b(?:safety\s+)?shoes?\b|\bboots?\b/i, "safety shoes", "safety_shoes"],
 
   // Construction materials
@@ -124,11 +127,12 @@ const PURPOSE_PATTERNS = [
 ];
 
 const INDUSTRY_MAP = {
-  construction: ["construction", "building", "foundation", "slab", "beam", "column", "concrete", "masonry", "civil", "road", "bridge"],
-  food: ["food", "atta", "flour", "water", "drinking", "edible", "hostel", "canteen"],
+  construction: ["construction", "building", "foundation", "slab", "beam", "column", "concrete", "masonry", "civil", "road", "bridge", "brick", "cement", "rebar", "tmt"],
+  food: ["food", "atta", "flour", "water", "drinking", "edible", "hostel", "canteen", "wheat", "grain", "cereal"],
   electrical: ["electrical", "cable", "wire", "led", "lamp", "bulb", "switch", "luminaire", "lighting", "transformer", "solar"],
-  plumbing: ["pipe", "plumbing", "water supply", "drainage", "tank", "treatment"],
-  manufacturing: ["steel", "tmt", "bar", "structural", "chair", "furniture", "extinguisher", "helmet"],
+  plumbing: ["pipe", "plumbing", "water supply", "drainage", "tank", "treatment", "hdpe pipe"],
+  stationery: ["pen", "ball point", "refill", "paper", "stationery", "office"],
+  manufacturing: ["steel", "tmt", "bar", "structural", "chair", "furniture", "extinguisher", "helmet", "safety", "bottle"],
   general: []
 };
 
@@ -145,7 +149,7 @@ export function parseRequirementLocal(query) {
   let isNumberQuery = null;
 
   // Check direct IS number query first
-  const isMatch = q.match(/\bIS\s*\d+(?:\s*\(?\s*PART\s*\d+(?:\s*\/\s*SEC\s*\d+)?\s*\)?)?(?:\s*:\s*\d{4})?\b/i);
+  const isMatch = q.match(/\bIS\s*\d+(?:\s*\(?\s*PART(?:S)?\s*[\d\w\s/–—-]+?\s*\)?)?(?:\s*:\s*\d{4})?\b/i);
   if (isMatch) {
     isNumberQuery = isMatch[0].toUpperCase().replace(/\s+/g, ' ');
     product = isNumberQuery;
@@ -159,6 +163,16 @@ export function parseRequirementLocal(query) {
         productType = pt;
         break;
       }
+    }
+  }
+
+  // Material extraction
+  let material = null;
+  const materials = ["stainless steel", "hdpe", "polyethylene", "clay", "glass", "upvc", "pvc", "concrete", "steel", "iron", "copper", "aluminum", "plastic"];
+  for (const mat of materials) {
+    if (qLower.includes(mat)) {
+      material = mat;
+      break;
     }
   }
 
@@ -212,7 +226,7 @@ export function parseRequirementLocal(query) {
     language: "English",
     product: product || "unknown product",
     product_type: productType || "unknown",
-    material: null,
+    material: material,
     packaging: null,
     purpose: purpose || "general procurement",
     applications: [],

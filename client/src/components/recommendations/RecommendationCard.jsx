@@ -36,24 +36,25 @@ export default function RecommendationCard({
   // Clean badges based on verified evidence
   const isBisLive = verificationSource === 'official_bis_live' || standard.data_source === 'BIS_LIVE';
   const isLocalVerified = verificationSource === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE';
+  const isMongoCached = verificationSource === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE';
 
   // Why this standard rationale
   const explanation = standard.structured_explanation?.why_recommended || 
     standard.explanation || 
-    `Standard specifies primary compliance and technical requirements for this product.`;
+    `Standard specifies technical and compliance requirements for this product.`;
 
   // Match evidence categories (defensible scoring)
-  const productMatch = score >= 85 ? "Strong" : (score >= 65 ? "Moderate" : "Relevant");
-  const appMatch = standard.scope ? "Strong" : "Moderate";
-  const techMatch = (standard.technical_requirements?.length > 0 || standard.normative_references?.length > 0) ? "Strong" : "Moderate";
-  const industryMatch = standard.department ? "Strong" : "Moderate";
+  const productMatch = score >= 85 ? "Strong" : (score >= 65 ? "Moderate" : (score >= 40 ? "Relevant" : "Low"));
+  const appMatch = standard.scope ? "Strong" : (standard.title ? "Moderate" : "General");
+  const techMatch = (standard.technical_requirements?.length > 0 || standard.normative_references?.length > 0 || standard.test_methods?.length > 0) ? "Strong" : "Standard";
+  const industryMatch = standard.department ? "Strong" : "General";
 
-  // Coverage items
+  // Coverage items derived from real data
   const coverageItems = [
-    { label: "Product Applicability", status: "yes" },
-    { label: "Safety Requirements", status: standard.safety_standards?.length > 0 || title.toLowerCase().includes('safety') ? "yes" : "yes" },
-    { label: "Test & Sampling Methods", status: standard.test_methods?.length > 0 ? "yes" : "neutral" },
-    { label: "Quality Specifications", status: "yes" }
+    { label: "Product Specifications", status: standard.title ? "yes" : "neutral" },
+    { label: "Safety Requirements", status: (standard.safety_standards?.length > 0 || title.toLowerCase().includes('safety')) ? "yes" : "neutral" },
+    { label: "Test & Sampling Methods", status: (standard.test_methods?.length > 0 || title.toLowerCase().includes('test') || title.toLowerCase().includes('sampling')) ? "yes" : "neutral" },
+    { label: "Conformity & Quality Guidelines", status: (standard.certification?.mandatory || standard.normative_references?.length > 0) ? "yes" : "neutral" }
   ];
 
   return (
@@ -90,20 +91,26 @@ export default function RecommendationCard({
           )}
 
           {isBisLive && (
-            <span className="badge badge-gold" title="Discovered live from official BIS Standards portal">
-              ✓ BIS LIVE
+            <span className="badge badge-gold" title="Verified live from official BIS Standards portal">
+              ✓ LIVE BIS VERIFIED
             </span>
           )}
 
           {!isBisLive && isLocalVerified && (
-            <span className="badge badge-verified" title="Verified against canonical BIS Indian Standards repository">
-              ✓ BIS VERIFIED
+            <span className="badge badge-verified" title="Pre-indexed from verified Indian Standards catalog">
+              LOCAL VERIFIED INDEX
             </span>
           )}
 
-          {!isBisLive && !isLocalVerified && (
-            <span className="badge badge-warning">
-              NEEDS VERIFICATION
+          {!isBisLive && !isLocalVerified && isMongoCached && (
+            <span className="badge badge-blue" title="Cached from MongoDB standards database">
+              MONGODB CACHED
+            </span>
+          )}
+
+          {!isBisLive && !isLocalVerified && !isMongoCached && (
+            <span className="badge badge-warning" title="Standard details could not be independently verified">
+              UNVERIFIED
             </span>
           )}
         </div>

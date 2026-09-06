@@ -22,7 +22,7 @@ export default function SystemStatusModal({
   const isApiOk = status.api === 'online';
   const isBisOk = status.bis === 'available';
   const isMongoOk = status.mongodb === 'connected' || (typeof status.mongodb === 'string' && status.mongodb.includes('ok'));
-  const isGeminiOk = status.gemini === 'AVAILABLE';
+  const isGeminiOk = status.gemini === 'available' || status.gemini === 'AVAILABLE';
   const isLocalIndexOk = status.localIndex === 'ready';
 
   const components = [
