@@ -12,7 +12,7 @@ const canonicalQueries = [
   { q: "HDPE pipe", expectedIs: "IS 4984:2016", expectedClassification: "DIRECT_PRODUCT" },
   { q: "brick", expectedPrimary: "IS 1077:1992", expectedAllied: "IS 3495 (Parts 1 to 4):2019" },
   { q: "IS 3495:2019", expectedIs: "IS 3495 (Parts 1 to 4):2019", isDirect: true },
-  { q: "IS 1077:1992", expectedIs: "IS 1077:1992", isDirect: true },
+  { q: "bread food", expectedProduct: "bread", expectBisQueries: ["bread", "bread products", "bakery products"] },
   { q: "airplane engine", expectNoMatch: true }
 ];
 
@@ -58,6 +58,14 @@ async function run() {
         console.log(`  [PASS]: Correctly returned no false primary recommendation for unsupported query.`);
       } else {
         console.error(`  [FAIL]: Expected no match, but got primary: ${primaryList}`);
+        testPass = false;
+      }
+    } else if (item.expectedProduct) {
+      if (result.requirement.product === item.expectedProduct &&
+          item.expectBisQueries.every(bq => (result.bisQueries || []).includes(bq))) {
+        console.log(`  [PASS]: Cleanly parsed product as '${result.requirement.product}' and generated BIS queries: ${JSON.stringify(result.bisQueries)}`);
+      } else {
+        console.error(`  [FAIL]: Product '${result.requirement.product}' != '${item.expectedProduct}' or BIS queries mismatch`);
         testPass = false;
       }
     } else if (item.expectedPrimary) {

@@ -8,6 +8,7 @@ export default function ZeroResultsState({
   isLoading 
 }) {
   const isBisUnavailable = bisStatus === 'unavailable';
+  const isBisSearchedNoResults = bisStatus === 'searched_no_results';
 
   return (
     <div className="card-panel" style={{
@@ -36,11 +37,21 @@ export default function ZeroResultsState({
       </span>
 
       <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#FFFFFF', marginTop: '4px', marginBottom: '8px' }}>
-        No Strong Match Identified in Local Verified Dataset
+        {isBisSearchedNoResults 
+          ? "No Matching Standards Found on Live BIS Portal or Local Index"
+          : "No Strong Match Identified in Local Verified Dataset"}
       </h3>
 
       <p style={{ maxWidth: '560px', margin: '0 auto 20px auto', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-        We couldn't identify a sufficiently high-confidence standard for <span style={{ color: '#FFFFFF', fontWeight: 600 }}>"{query}"</span> in the local verified Indian Standards catalog.
+        {isBisSearchedNoResults ? (
+          <>
+            Automated live search on the official BIS Standards Portal was executed for <span style={{ color: '#FFFFFF', fontWeight: 600 }}>"{query}"</span>, but no matching Indian Standards were returned for this product specification.
+          </>
+        ) : (
+          <>
+            We couldn't identify a sufficiently high-confidence standard for <span style={{ color: '#FFFFFF', fontWeight: 600 }}>"{query}"</span> in the local verified Indian Standards catalog.
+          </>
+        )}
       </p>
 
       {/* BIS Status Callout */}
@@ -59,6 +70,23 @@ export default function ZeroResultsState({
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
             Automated live discovery could not reach the BIS portal. Try providing more specific technical parameters or direct standard numbers.
+          </div>
+        </div>
+      ) : isBisSearchedNoResults ? (
+        <div style={{
+          maxWidth: '520px',
+          margin: '0 auto 24px auto',
+          background: 'rgba(59, 130, 246, 0.05)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          borderRadius: '6px',
+          padding: '12px 16px',
+          textAlign: 'left'
+        }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--accent-blue)', marginBottom: '4px' }}>
+            Live BIS Portal Verification Completed
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            The official BIS portal was queried with intelligent keyword variations. Consider querying with technical standard numbers or broader material terms.
           </div>
         </div>
       ) : (

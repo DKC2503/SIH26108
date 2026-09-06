@@ -95,6 +95,10 @@ export const PRODUCT_ALIASES = [
   [/\belectric wires?\b/i, "wire", "electric_wire"],
 
   // Food
+  [/\bwhite bread\b|\bbrown bread\b|\bwheat bread\b/i, "bread", "bread"],
+  [/\bbread(?:s)?\b/i, "bread", "bread"],
+  [/\bbakery products?\b/i, "bakery products", "bakery_products"],
+  [/\bbiscuits?\b/i, "biscuits", "biscuits"],
   [/\bwheat flour\b|\batta\b/i, "wheat flour", "packaged_wheat_flour"],
   [/\bwheat(?:\s+grains?)?\b/i, "wheat", "wheat_grain"],
   [/\bedible oil\b/i, "edible oil", "packaged_edible_oil"],
@@ -213,13 +217,45 @@ export function parseRequirementLocal(query) {
     productType = product.replace(/\s+/g, "_") || "general";
   }
 
-  // Build BIS search queries
-  const bisQueries = [product];
-  if (productType && productType !== "unknown" && productType !== product && productType !== "is_standard") {
-    bisQueries.push(productType.replace(/_/g, " "));
+  // Strip generic broad industry suffix words from product if attached
+  // e.g. "bread food" -> product becomes "bread", while industry is already "food"
+  if (product && !isNumberQuery) {
+    const broadIndustrySuffixes = [" food", " construction", " electrical", " stationery", " plumbing"];
+    for (const suff of broadIndustrySuffixes) {
+      if (product.endsWith(suff) && product.length > suff.length) {
+        product = product.slice(0, -suff.length).trim();
+        break;
+      }
+    }
   }
+
+  // Build intelligent, deduplicated BIS search queries
+  const bisQueries = [];
+  const addQuery = (term) => {
+    if (!term || typeof term !== 'string') return;
+    const clean = term.trim().toLowerCase();
+    if (clean.length >= 3 && !bisQueries.includes(clean)) {
+      bisQueries.push(clean);
+    }
+  };
+
+  addQuery(product);
+  if (productType && productType !== "unknown" && productType !== "general" && productType !== product && productType !== "is_standard") {
+    addQuery(productType.replace(/_/g, " "));
+  }
+  // If product is a specific food item like bread, add domain query
+  if (product === "bread") {
+    addQuery("bread products");
+    addQuery("bakery products");
+  } else if (product.includes("rebar") || product.includes("steel bar")) {
+    addQuery("reinforcement bars");
+    addQuery("high strength deformed steel bars");
+  } else if (product.includes("light") && !product.includes("street light")) {
+    addQuery("led luminaires");
+  }
+
   if (purpose) {
-    bisQueries.push(`${product} for ${purpose}`);
+    addQuery(`${product} for ${purpose}`);
   }
 
   return {

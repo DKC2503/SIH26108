@@ -357,13 +357,20 @@ export async function runFastAnalysis(query, inputType = "product_description", 
   // Sort candidates by score descending
   primaryStandards.sort((a, b) => b.score - a.score);
 
-  // Step 4: Live BIS Discovery if no high-confidence primary standard
+  // Step 4: Live BIS Discovery if local results are insufficient
+  // Trigger if no primary standards found OR highest local score is below 0.65
   let liveBisUsed = false;
   let bisStatus = "not_needed";
   let bisReason = null;
+  let bisCandidatesFound = 0;
   const tBis0 = Date.now();
 
-  const localResultsInsufficient = (primaryStandards.length === 0);
+  const topLocalScore = primaryStandards.length > 0 ? primaryStandards[0].score : 0.0;
+  const localResultsInsufficient = (primaryStandards.length === 0 || topLocalScore < 0.65);
+
+  const candidateBisQueries = requirement.bis_search_queries && requirement.bis_search_queries.length > 0
+    ? requirement.bis_search_queries
+    : [requirement.product];
 
   if (localResultsInsufficient) {
     if (!enableBisDiscovery) {
@@ -374,7 +381,9 @@ export async function runFastAnalysis(query, inputType = "product_description", 
 
       if (bisHealth.status === "available") {
         try {
-          const liveCandidates = await scrapeBisKeyword(requirement.product, 6, 12000);
+          // Pass the expanded queries list so bisScraper tries them sequentially
+          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 6, 12000);
+          bisCandidatesFound = liveCandidates.length;
 
           if (liveCandidates.length > 0) {
             for (const c of liveCandidates) {
@@ -405,8 +414,8 @@ export async function runFastAnalysis(query, inputType = "product_description", 
             }
 
             primaryStandards.sort((a, b) => b.score - a.score);
-            liveBisUsed = true;
-            bisStatus = "success";
+            liveBisUsed = primaryStandards.some(s => s.verification_source === "official_bis_live");
+            bisStatus = liveCandidates.length > 0 ? "success" : "searched_no_results";
           } else {
             bisStatus = "searched_no_results";
           }
@@ -470,6 +479,10 @@ export async function runFastAnalysis(query, inputType = "product_description", 
         allied_standards: alliedStandards,
         bisStatus: "unavailable",
         bis_reason: bisReason,
+        bisQueries: candidateBisQueries,
+        bisCandidatesFound,
+        live_bis_used: false,
+        live_bis_attempted: true,
         message: `No high-confidence Indian Standard found for '${requirement.product}' in the currently available verified sources, and live BIS verification is unavailable.`,
         stages,
         timings: {
@@ -484,6 +497,8 @@ export async function runFastAnalysis(query, inputType = "product_description", 
           live_bis_used: false,
           live_bis_attempted: true,
           bis_status: "unavailable",
+          bis_queries: candidateBisQueries,
+          bis_candidates_found: bisCandidatesFound,
           mongo_cache_used: mongoUsed,
           local_index_used: true
         }
@@ -496,6 +511,10 @@ export async function runFastAnalysis(query, inputType = "product_description", 
       primary_standards: [],
       allied_standards: alliedStandards,
       bisStatus: bisStatus,
+      bisQueries: candidateBisQueries,
+      bisCandidatesFound,
+      live_bis_used: liveBisUsed,
+      live_bis_attempted: true,
       message: `No high-confidence Indian Standard found for '${requirement.product}' in the currently available verified sources.`,
       stages,
       timings: {
@@ -510,6 +529,8 @@ export async function runFastAnalysis(query, inputType = "product_description", 
         live_bis_used: liveBisUsed,
         live_bis_attempted: true,
         bis_status: bisStatus,
+        bis_queries: candidateBisQueries,
+        bis_candidates_found: bisCandidatesFound,
         mongo_cache_used: mongoUsed,
         local_index_used: true
       }
@@ -521,6 +542,11 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     requirement,
     primary_standards: primaryStandards,
     allied_standards: alliedStandards,
+    bisStatus: bisStatus,
+    bisQueries: candidateBisQueries,
+    bisCandidatesFound,
+    live_bis_used: liveBisUsed,
+    live_bis_attempted: localResultsInsufficient,
     stages,
     timings: {
       requirement_parsing_ms: tReq,
@@ -532,7 +558,10 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     warnings: [],
     run_meta: {
       live_bis_used: liveBisUsed,
+      live_bis_attempted: localResultsInsufficient,
       bis_status: bisStatus,
+      bis_queries: candidateBisQueries,
+      bis_candidates_found: bisCandidatesFound,
       mongo_cache_used: mongoUsed,
       local_index_used: true
     }

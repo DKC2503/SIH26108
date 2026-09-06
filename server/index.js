@@ -24,12 +24,54 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 app.use(compression());
-app.use(cors({ origin: '*', credentials: true }));
+// Robust CORS configuration:
+// If request has origin, allow recognized origins or any origin with proper CORS headers
+const ALLOWED_ORIGINS = [
+  'https://sih26108-d804d.web.app',
+  'https://sih26108-d804d.firebaseapp.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.web.app') || origin.endsWith('.firebaseapp.com')) {
+      return callback(null, true);
+    }
+    // For other origins in development or custom domains, reflect origin to allow cross-origin
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Router
 app.use('/api', apiRouter);
+
+// Global Error Handler (e.g. Multer limit, JSON parsing)
+app.use((err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      error: "File size exceeds 10MB limit.",
+      detail: "Uploaded file is too large. Please upload a tender document under 10MB."
+    });
+  }
+  if (err) {
+    console.error("[SERVER] Unhandled error:", err);
+    return res.status(err.status || 500).json({
+      error: err.message || "Internal server error",
+      detail: err.message || "An unexpected error occurred."
+    });
+  }
+  next();
+});
 
 // Serve built React frontend if exists, otherwise serve root static files (bis_home.html, etc.)
 const clientDist = path.join(ROOT_DIR, 'client', 'dist');

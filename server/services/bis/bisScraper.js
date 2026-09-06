@@ -105,26 +105,45 @@ const OVERLY_BROAD_WORDS = new Set([
 ]);
 
 /**
- * Scrape BIS Standards Portal for a keyword or query.
+ * Scrape BIS Standards Portal for a keyword or candidate queries.
  * Falls back across candidate query terms while preserving product meaning.
+ * @param {string|string[]} queryInput - Single keyword or array of candidate query terms
+ * @param {number} limit - Maximum number of standards to return
+ * @param {number} timeoutMs - Timeout per request in milliseconds
  */
-export async function scrapeBisKeyword(keyword, limit = 6, timeoutMs = 12000) {
-  if (!keyword || !keyword.trim()) return [];
-  const rawKw = keyword.trim();
-  console.log(`[BIS] Starting live discovery for: '${rawKw}'`);
+export async function scrapeBisKeyword(queryInput, limit = 6, timeoutMs = 12000) {
+  if (!queryInput) return [];
 
-  // Build candidate search terms while strictly avoiding overly broad one-word terms
-  const searchTerms = [rawKw];
-  const words = rawKw.split(/\s+/).filter(w => w.length > 2);
+  // Assemble list of search terms
+  const searchTerms = [];
+  const addTerm = (t) => {
+    if (!t || typeof t !== 'string') return;
+    const clean = t.trim();
+    if (clean.length >= 2 && !searchTerms.includes(clean)) {
+      searchTerms.push(clean);
+    }
+  };
 
+  if (Array.isArray(queryInput)) {
+    for (const q of queryInput) addTerm(q);
+  } else {
+    addTerm(queryInput);
+  }
+
+  if (searchTerms.length === 0) return [];
+  const primaryTerm = searchTerms[0];
+  console.log(`[BIS] Starting live discovery for: '${primaryTerm}' (candidate queries: ${JSON.stringify(searchTerms)})`);
+
+  // Also add derived 2-word combinations if primary query is longer
+  const words = primaryTerm.split(/\s+/).filter(w => w.length > 2);
   if (words.length > 2) {
     const firstTwo = words.slice(0, 2).join(" ");
-    if (!searchTerms.includes(firstTwo) && !OVERLY_BROAD_WORDS.has(firstTwo.toLowerCase())) {
-      searchTerms.push(firstTwo);
+    if (!OVERLY_BROAD_WORDS.has(firstTwo.toLowerCase())) {
+      addTerm(firstTwo);
     }
     const lastTwo = words.slice(-2).join(" ");
-    if (!searchTerms.includes(lastTwo) && !OVERLY_BROAD_WORDS.has(lastTwo.toLowerCase())) {
-      searchTerms.push(lastTwo);
+    if (!OVERLY_BROAD_WORDS.has(lastTwo.toLowerCase())) {
+      addTerm(lastTwo);
     }
   }
 
@@ -196,7 +215,7 @@ export async function scrapeBisKeyword(keyword, limit = 6, timeoutMs = 12000) {
               data_source: "BIS_LIVE",
               search_term: term,
               published_year: c.publishedYear || null,
-              scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal for query '${rawKw}'.`,
+              scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal for query '${primaryTerm}'.`,
               certification: { status: "Voluntary", mandatory: false }
             });
           }
@@ -209,7 +228,7 @@ export async function scrapeBisKeyword(keyword, limit = 6, timeoutMs = 12000) {
       }
     }
 
-    console.log(`[BIS] Live discovery finished: found ${results.length} standard(s) for '${rawKw}'`);
+    console.log(`[BIS] Live discovery finished: found ${results.length} standard(s) for '${primaryTerm}'`);
     return results;
   } catch (err) {
     console.error(`[BIS] Discovery failed: ${err.message}`);
