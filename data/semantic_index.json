@@ -1,0 +1,856 @@
+[
+  {
+    "is_number": "IS 3705:2024",
+    "title": "Ball Point Pens and Refills — Specification",
+    "category": "Stationery",
+    "sub_category": "Pens & Writing Instruments",
+    "product_keywords": [
+      "ball point pen",
+      "ball pen",
+      "pen",
+      "refill",
+      "office stationery",
+      "writing instrument"
+    ],
+    "scope": "This standard specifies requirements and methods of sampling and test for general purpose ball point pens and refills suitable for office and general writing use.",
+    "bis_status": "Active",
+    "department": "PCD — Office Equipment and Stationery",
+    "technical_committee": "PCD 25 — Office Equipment and Stationery",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Voluntary",
+      "mandatory": false
+    },
+    "normative_references": [
+      "IS 3707:1986",
+      "IS 10993:2005"
+    ],
+    "test_methods": [
+      "IS 3707:1986"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkNhS1JZc1pZQ1JYbjRORGpEYVd1enc9PSIsInZhbHVlIjoiTTFVdjkwM1gvRzNLclFBNzdQL1ZhZz09IiwibWFjIjoiMGU3MDcyM2M4ODI2ZmIwNjBjYmE5NmMwZmE3ZjBiZjczZTI0OWIzMmE1ZjA0YTFiYjFiYmQzNTZmYWMyMGVhOSIsInRhZyI6IiJ9&standardNumber=IS%203705:2024",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkNhS1JZc1pZQ1JYbjRORGpEYVd1enc9PSIsInZhbHVlIjoiTTFVdjkwM1gvRzNLclFBNzdQL1ZhZz09IiwibWFjIjoiMGU3MDcyM2M4ODI2ZmIwNjBjYmE5NmMwZmE3ZjBiZjczZTI0OWIzMmE1ZjA0YTFiYjFiYmQzNTZmYWMyMGVhOSIsInRhZyI6IiJ9&standardNumber=IS%203705:2024",
+    "_semantic_text": "ball point pens and refills — specification ball point pens and refills — specification ball point pen ball pen pen refill office stationery writing instrument ball point pen ball pen pen refill office stationery writing instrument this standard specifies requirements and methods of sampling and test for general purpose ball point pens and refills suitable for office and general writing use. stationery pens & writing instruments pcd — office equipment and stationery  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0
+    ],
+    "_search_text": "is 3705:2024 ball point pens and refills specification stationery pens writing instruments this standard specifies requirements and methods of sampling and test for general purpose ball point pens and refills suitable for office and general writing use pcd office equipment and stationery ball point pen ball pen pen refill office stationery writing instrument",
+    "_norm_title": "ball point pens and refills specification"
+  },
+  {
+    "is_number": "IS 10322 (Part 5/Sec 3):2012",
+    "title": "Luminaires — Particular Requirements — Luminaires for Road and Street Lighting",
+    "category": "Electrical & Electronics",
+    "sub_category": "Lighting & Luminaires",
+    "product_keywords": [
+      "led street light",
+      "street light",
+      "led lamp",
+      "road lighting",
+      "outdoor luminaire",
+      "ip66 street light"
+    ],
+    "scope": "Specifies requirements for street lighting luminaires, including LED street lights for outdoor road lighting, ingress protection (IP66), electrical safety, and performance.",
+    "bis_status": "Active",
+    "department": "ETD — Electrotechnical",
+    "technical_committee": "ETD 24 — Illumination Engineering",
+    "type_of_standard": "Specification",
+    "certification": {
+      "status": "Mandatory (CRS)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 16101:2012",
+      "IS 16102 (Part 1):2012",
+      "IS 16103 (Part 1):2012"
+    ],
+    "test_methods": [
+      "IS 16106:2012"
+    ],
+    "amendments": [
+      "Amendment No. 1 (2018)"
+    ],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkVQMFRUTWNEY1FsQ1Y2MkxPUE5oR3c9PSIsInZhbHVlIjoicXNiNVhOU2VsaE9JU3lNVWpTNFppQT09IiwibWFjIjoiMjUwM2NmNDg3NTcwZDk1YzgwMzczNTE5ZTEyNjYyOGM2NTllZWQ5NmFkYmU3ZDkwNTY0NjQzNjhhYTY2ZDJiOCIsInRhZyI6IiJ9&standardNumber=IS%2010322%20(Part%205%2FSec%203):2012",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkVQMFRUTWNEY1FsQ1Y2MkxPUE5oR3c9PSIsInZhbHVlIjoicXNiNVhOU2VsaE9JU3lNVWpTNFppQT09IiwibWFjIjoiMjUwM2NmNDg3NTcwZDk1YzgwMzczNTE5ZTEyNjYyOGM2NTllZWQ5NmFkYmU3ZDkwNTY0NjQzNjhhYTY2ZDJiOCIsInRhZyI6IiJ9&standardNumber=IS%2010322%20(Part%205%2FSec%203):2012",
+    "_semantic_text": "luminaires — particular requirements — luminaires for road and street lighting luminaires — particular requirements — luminaires for road and street lighting led street light street light led lamp road lighting outdoor luminaire ip66 street light led street light street light led lamp road lighting outdoor luminaire ip66 street light specifies requirements for street lighting luminaires, including led street lights for outdoor road lighting, ingress protection (ip66), electrical safety, and performance. electrical & electronics lighting & luminaires etd — electrotechnical  ",
+    "_concept_vector": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 10322 part 5 sec 3 :2012 luminaires particular requirements luminaires for road and street lighting electrical electronics lighting luminaires specifies requirements for street lighting luminaires including led street lights for outdoor road lighting ingress protection ip66 electrical safety and performance etd electrotechnical led street light street light led lamp road lighting outdoor luminaire ip66 street light",
+    "_norm_title": "luminaires particular requirements luminaires for road and street lighting"
+  },
+  {
+    "is_number": "IS 16102 (Part 1):2012",
+    "title": "Self-Ballasted LED Lamps for General Lighting Services — Part 1: Safety Requirements",
+    "category": "Electrical & Electronics",
+    "sub_category": "LED Lighting",
+    "product_keywords": [
+      "led lamp",
+      "led bulb",
+      "lighting",
+      "electric lamp"
+    ],
+    "scope": "Specifies safety and interchangeability requirements, together with the test methods and conditions required to show compliance of LED lamps.",
+    "bis_status": "Active",
+    "department": "ETD — Electrotechnical",
+    "technical_committee": "ETD 24 — Illumination Engineering",
+    "type_of_standard": "Safety Specification",
+    "certification": {
+      "status": "Mandatory (CRS)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 16101:2012"
+    ],
+    "test_methods": [
+      "IS 16106:2012"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImVhQzRzUWRKN2VTRUwyV2NwOThJNFE9PSIsInZhbHVlIjoiejVmT3J2dU9MeGY5d2VKNDhUK1RSZz09IiwibWFjIjoiOTM2Njk2YWI5OTNhMDM5MGFkYjE0MDNhYjQxODYwYWYxNjM4YzE4NWYzMTk5MGJiN2NlMGRhYTIzMGNmNjRhZCIsInRhZyI6IiJ9&standardNumber=IS%2016102%20(Part%201):2012",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImVhQzRzUWRKN2VTRUwyV2NwOThJNFE9PSIsInZhbHVlIjoiejVmT3J2dU9MeGY5d2VKNDhUK1RSZz09IiwibWFjIjoiOTM2Njk2YWI5OTNhMDM5MGFkYjE0MDNhYjQxODYwYWYxNjM4YzE4NWYzMTk5MGJiN2NlMGRhYTIzMGNmNjRhZCIsInRhZyI6IiJ9&standardNumber=IS%2016102%20(Part%201):2012",
+    "_semantic_text": "self-ballasted led lamps for general lighting services — part 1: safety requirements self-ballasted led lamps for general lighting services — part 1: safety requirements led lamp led bulb lighting electric lamp led lamp led bulb lighting electric lamp specifies safety and interchangeability requirements, together with the test methods and conditions required to show compliance of led lamps. electrical & electronics led lighting etd — electrotechnical  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 16102 part 1 :2012 self ballasted led lamps for general lighting services part 1: safety requirements electrical electronics led lighting specifies safety and interchangeability requirements together with the test methods and conditions required to show compliance of led lamps etd electrotechnical led lamp led bulb lighting electric lamp",
+    "_norm_title": "self ballasted led lamps for general lighting services part 1: safety requirements"
+  },
+  {
+    "is_number": "IS 16102 (Part 2):2017",
+    "title": "Self-Ballasted LED Lamps for General Lighting Services — Part 2: Performance Requirements",
+    "category": "Electrical & Electronics",
+    "sub_category": "LED Lighting",
+    "product_keywords": [
+      "led lamp",
+      "led bulb",
+      "luminous efficacy",
+      "lighting performance"
+    ],
+    "scope": "Specifies the performance requirements for self-ballasted LED lamps for general lighting services, including luminous flux, efficacy, life and color rendering.",
+    "bis_status": "Active",
+    "department": "ETD — Electrotechnical",
+    "technical_committee": "ETD 24 — Illumination Engineering",
+    "type_of_standard": "Performance Specification",
+    "certification": {
+      "status": "Mandatory (CRS)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 16101:2012",
+      "IS 16102 (Part 1):2012"
+    ],
+    "test_methods": [
+      "IS 16106:2012"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImsyVVlkVkZnb2VuNVFQZjN1dURpM1E9PSIsInZhbHVlIjoiSVFqZWRacHB1bDNEeThmVXBrZzAyZz09IiwibWFjIjoiZWQwZGM0OTQ0ZjUwNzI0OWNkZjgyZDE4MmQ1NGM3N2JlMjMxNjhkYWM4OTY5ZWFlNTc4N2Q4ZDg1ZDg5NzIzNCIsInRhZyI6IiJ9&standardNumber=IS%2016102%20(Part%202):2017",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImsyVVlkVkZnb2VuNVFQZjN1dURpM1E9PSIsInZhbHVlIjoiSVFqZWRacHB1bDNEeThmVXBrZzAyZz09IiwibWFjIjoiZWQwZGM0OTQ0ZjUwNzI0OWNkZjgyZDE4MmQ1NGM3N2JlMjMxNjhkYWM4OTY5ZWFlNTc4N2Q4ZDg1ZDg5NzIzNCIsInRhZyI6IiJ9&standardNumber=IS%2016102%20(Part%202):2017",
+    "_semantic_text": "self-ballasted led lamps for general lighting services — part 2: performance requirements self-ballasted led lamps for general lighting services — part 2: performance requirements led lamp led bulb luminous efficacy lighting performance led lamp led bulb luminous efficacy lighting performance specifies the performance requirements for self-ballasted led lamps for general lighting services, including luminous flux, efficacy, life and color rendering. electrical & electronics led lighting etd — electrotechnical  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 16102 part 2 :2017 self ballasted led lamps for general lighting services part 2: performance requirements electrical electronics led lighting specifies the performance requirements for self ballasted led lamps for general lighting services including luminous flux efficacy life and color rendering etd electrotechnical led lamp led bulb luminous efficacy lighting performance",
+    "_norm_title": "self ballasted led lamps for general lighting services part 2: performance requirements"
+  },
+  {
+    "is_number": "IS 269:2015",
+    "title": "Ordinary Portland Cement — Specification",
+    "category": "Civil Engineering & Construction",
+    "sub_category": "Cement & Building Materials",
+    "product_keywords": [
+      "cement",
+      "opc",
+      "ordinary portland cement",
+      "opc 33",
+      "opc 43",
+      "opc 53",
+      "concrete",
+      "construction"
+    ],
+    "scope": "Covers the manufacture and chemical and physical requirements for Ordinary Portland Cement of 33, 43 and 53 grades for building construction.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 2 — Cement and Concrete",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 4031 (Part 1):1988",
+      "IS 4032:1985"
+    ],
+    "test_methods": [
+      "IS 4031 (Part 1):1988"
+    ],
+    "amendments": [
+      "Amendment No. 1 (2018)",
+      "Amendment No. 2 (2020)"
+    ],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6Ikx0ZmorVWttY295Q3BWZnpSMDJIVWc9PSIsInZhbHVlIjoiL2lkLzVhRUc2cTV6ajRzTlFOSTB5UT09IiwibWFjIjoiMmUzMGFhNmY3YThmNTBkOTU1MzljYjFkNmY1ZTQyZGVlODEwMDRmMDEzZmU2YzAxOTk5NmY2YjZjZmExYzRkOCIsInRhZyI6IiJ9&standardNumber=IS%20269:2015",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6Ikx0ZmorVWttY295Q3BWZnpSMDJIVWc9PSIsInZhbHVlIjoiL2lkLzVhRUc2cTV6ajRzTlFOSTB5UT09IiwibWFjIjoiMmUzMGFhNmY3YThmNTBkOTU1MzljYjFkNmY1ZTQyZGVlODEwMDRmMDEzZmU2YzAxOTk5NmY2YjZjZmExYzRkOCIsInRhZyI6IiJ9&standardNumber=IS%20269:2015",
+    "_semantic_text": "ordinary portland cement — specification ordinary portland cement — specification cement opc ordinary portland cement opc 33 opc 43 opc 53 concrete construction cement opc ordinary portland cement opc 33 opc 43 opc 53 concrete construction covers the manufacture and chemical and physical requirements for ordinary portland cement of 33, 43 and 53 grades for building construction. civil engineering & construction cement & building materials ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 269:2015 ordinary portland cement specification civil engineering construction cement building materials covers the manufacture and chemical and physical requirements for ordinary portland cement of 33 43 and 53 grades for building construction ced civil engineering cement opc ordinary portland cement opc 33 opc 43 opc 53 concrete construction",
+    "_norm_title": "ordinary portland cement specification"
+  },
+  {
+    "is_number": "IS 1786:2008",
+    "title": "High Strength Deformed Steel Bars and Wires for Concrete Reinforcement — Specification",
+    "category": "Civil Engineering & Construction",
+    "sub_category": "Steel & Rebar",
+    "product_keywords": [
+      "tmt bar",
+      "steel bar",
+      "deformed steel bar",
+      "rebar",
+      "high tensile rebar",
+      "fe 500",
+      "fe 550",
+      "reinforcement"
+    ],
+    "scope": "Covers requirements for high strength deformed steel bars and wires for use as reinforcement in concrete structures.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 54 — Concrete Reinforcement",
+    "type_of_standard": "Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 2062:2011",
+      "IS 1608:2005"
+    ],
+    "test_methods": [
+      "IS 1608:2005"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkpScWlqUE1NQm5kc3hPdzNNR044alE9PSIsInZhbHVlIjoic0xKaUdYQmcyUlpDcjI0VGZOS3JSUT09IiwibWFjIjoiNDI4NDVlNzUzZjU5M2RkMzQyNDQ1NmQ4MWNhOTA2MmFlMTJmYjM2Yzk2ZDE4Yzg2YjU5YTg2MTUxMTBlYmRmOCIsInRhZyI6IiJ9&standardNumber=IS%201786:2008",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkpScWlqUE1NQm5kc3hPdzNNR044alE9PSIsInZhbHVlIjoic0xKaUdYQmcyUlpDcjI0VGZOS3JSUT09IiwibWFjIjoiNDI4NDVlNzUzZjU5M2RkMzQyNDQ1NmQ4MWNhOTA2MmFlMTJmYjM2Yzk2ZDE4Yzg2YjU5YTg2MTUxMTBlYmRmOCIsInRhZyI6IiJ9&standardNumber=IS%201786:2008",
+    "_semantic_text": "high strength deformed steel bars and wires for concrete reinforcement — specification high strength deformed steel bars and wires for concrete reinforcement — specification tmt bar steel bar deformed steel bar rebar high tensile rebar fe 500 fe 550 reinforcement tmt bar steel bar deformed steel bar rebar high tensile rebar fe 500 fe 550 reinforcement covers requirements for high strength deformed steel bars and wires for use as reinforcement in concrete structures. civil engineering & construction steel & rebar ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0.9284766912460327,
+      0,
+      0.3713906705379486,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 1786:2008 high strength deformed steel bars and wires for concrete reinforcement specification civil engineering construction steel rebar covers requirements for high strength deformed steel bars and wires for use as reinforcement in concrete structures ced civil engineering tmt bar steel bar deformed steel bar rebar high tensile rebar fe 500 fe 550 reinforcement",
+    "_norm_title": "high strength deformed steel bars and wires for concrete reinforcement specification"
+  },
+  {
+    "is_number": "IS 17803:2022",
+    "title": "Stainless Steel Vacuum Insulated Water Bottles — Specification",
+    "category": "Consumer Products",
+    "sub_category": "Domestic Appliances",
+    "product_keywords": [
+      "water bottle",
+      "stainless steel water bottle",
+      "vacuum bottle",
+      "flask"
+    ],
+    "scope": "Specifies requirements for materials, dimensions, finish, insulation efficiency and thermal performance for stainless steel vacuum insulated water bottles.",
+    "bis_status": "Active",
+    "department": "PCD — Consumer Products",
+    "technical_committee": "PCD 22 — Utensils and Cutlery",
+    "type_of_standard": "Specification",
+    "certification": {
+      "status": "Mandatory (QCO)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 6911:2017"
+    ],
+    "test_methods": [
+      "IS 6911:2017"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImJNc09VZmphSGpySlhVdHlDNjJrK2c9PSIsInZhbHVlIjoialF6UE5kL1ZrckxORnhDSWxJS0xTdz09IiwibWFjIjoiNmVjZGE0ZTI4N2FlN2YzODBjNjk1ZmFmNDhlNWZmNDk4MWMyNzQxMTM5NWQyNWE1MDJkYzAyNzQ5NDZmYjRiNSIsInRhZyI6IiJ9&standardNumber=IS%2017803:2022",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImJNc09VZmphSGpySlhVdHlDNjJrK2c9PSIsInZhbHVlIjoialF6UE5kL1ZrckxORnhDSWxJS0xTdz09IiwibWFjIjoiNmVjZGE0ZTI4N2FlN2YzODBjNjk1ZmFmNDhlNWZmNDk4MWMyNzQxMTM5NWQyNWE1MDJkYzAyNzQ5NDZmYjRiNSIsInRhZyI6IiJ9&standardNumber=IS%2017803:2022",
+    "_semantic_text": "stainless steel vacuum insulated water bottles — specification stainless steel vacuum insulated water bottles — specification water bottle stainless steel water bottle vacuum bottle flask water bottle stainless steel water bottle vacuum bottle flask specifies requirements for materials, dimensions, finish, insulation efficiency and thermal performance for stainless steel vacuum insulated water bottles. consumer products domestic appliances pcd — consumer products  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 17803:2022 stainless steel vacuum insulated water bottles specification consumer products domestic appliances specifies requirements for materials dimensions finish insulation efficiency and thermal performance for stainless steel vacuum insulated water bottles pcd consumer products water bottle stainless steel water bottle vacuum bottle flask",
+    "_norm_title": "stainless steel vacuum insulated water bottles specification"
+  },
+  {
+    "is_number": "IS 14543:2024",
+    "title": "Packaged Drinking Water (Other Than Packaged Natural Mineral Water) — Specification",
+    "category": "Food & Agriculture",
+    "sub_category": "Drinks & Drinking Water",
+    "product_keywords": [
+      "packaged drinking water",
+      "drinking water",
+      "packaged water",
+      "bottled water"
+    ],
+    "scope": "Prescribes the requirements and methods of sampling and test for packaged drinking water other than packaged natural mineral water.",
+    "bis_status": "Active",
+    "department": "FAD — Food and Agriculture",
+    "technical_committee": "FAD 14 — Drinks and Drinking Water",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 3025 (Part 1):1987",
+      "IS 10500:2012"
+    ],
+    "test_methods": [
+      "IS 3025 (Part 1):1987"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjdqR0w4QkJGQXNtZ04ydzVFeUVLV3c9PSIsInZhbHVlIjoic0xDTkJ0Tm5SbThMVlZQMUltdER0dz09IiwibWFjIjoiY2Q2NTAwOTg4YTdmMDM4YmExMmYxMWY2NjFlZTUwZjZhNDg2MzQ0Njc3YjZiYzg5M2QwMzU3ZDdkMjQyNzI5NiIsInRhZyI6IiJ9&standardNumber=IS%2014543:2024",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjdqR0w4QkJGQXNtZ04ydzVFeUVLV3c9PSIsInZhbHVlIjoic0xDTkJ0Tm5SbThMVlZQMUltdER0dz09IiwibWFjIjoiY2Q2NTAwOTg4YTdmMDM4YmExMmYxMWY2NjFlZTUwZjZhNDg2MzQ0Njc3YjZiYzg5M2QwMzU3ZDdkMjQyNzI5NiIsInRhZyI6IiJ9&standardNumber=IS%2014543:2024",
+    "_semantic_text": "packaged drinking water (other than packaged natural mineral water) — specification packaged drinking water (other than packaged natural mineral water) — specification packaged drinking water drinking water packaged water bottled water packaged drinking water drinking water packaged water bottled water prescribes the requirements and methods of sampling and test for packaged drinking water other than packaged natural mineral water. food & agriculture drinks & drinking water fad — food and agriculture  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.4472135901451111,
+      0.8944271802902222,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 14543:2024 packaged drinking water other than packaged natural mineral water specification food agriculture drinks drinking water prescribes the requirements and methods of sampling and test for packaged drinking water other than packaged natural mineral water fad food and agriculture packaged drinking water drinking water packaged water bottled water",
+    "_norm_title": "packaged drinking water other than packaged natural mineral water specification"
+  },
+  {
+    "is_number": "IS 12701:1996",
+    "title": "Rotomoulded Polyethylene Water Storage Tanks — Specification",
+    "category": "Plastics & Polymers",
+    "sub_category": "Water Storage Containers",
+    "product_keywords": [
+      "hdpe plastic water storage tanks",
+      "water storage tanks",
+      "water tank",
+      "plastic tank",
+      "hdpe tank",
+      "polyethylene water tank"
+    ],
+    "scope": "Specifies requirements for materials, dimensions, construction, capacity, and performance for rotomoulded polyethylene (HDPE/LLDPE) water storage tanks for drinking water storage.",
+    "bis_status": "Active",
+    "department": "PCD — Petroleum, Coal and Related Products",
+    "technical_committee": "PCD 12 — Plastics",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 10146:1982",
+      "IS 4984:1995"
+    ],
+    "test_methods": [
+      "IS 12701:1996"
+    ],
+    "amendments": [
+      "Amendment No. 1 (2002)",
+      "Amendment No. 2 (2006)"
+    ],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkYvYmhqWkt5eFVDZENkMit4eWQ2MHc9PSIsInZhbHVlIjoid0Q3TGxkbkxwYTJEdkhPUGdEUkZhUT09IiwibWFjIjoiYzVkMDk5NWE5OTM0MzZhYzQwNWI5NTAzOWFlYzFmMTg5MTJmMDEzMjJhNDYwMzA1Y2Q1Mjk3YTA4MDg2M2EyMCIsInRhZyI6IiJ9&standardNumber=IS%2012701:1996",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkYvYmhqWkt5eFVDZENkMit4eWQ2MHc9PSIsInZhbHVlIjoid0Q3TGxkbkxwYTJEdkhPUGdEUkZhUT09IiwibWFjIjoiYzVkMDk5NWE5OTM0MzZhYzQwNWI5NTAzOWFlYzFmMTg5MTJmMDEzMjJhNDYwMzA1Y2Q1Mjk3YTA4MDg2M2EyMCIsInRhZyI6IiJ9&standardNumber=IS%2012701:1996",
+    "_semantic_text": "rotomoulded polyethylene water storage tanks — specification rotomoulded polyethylene water storage tanks — specification hdpe plastic water storage tanks water storage tanks water tank plastic tank hdpe tank polyethylene water tank hdpe plastic water storage tanks water storage tanks water tank plastic tank hdpe tank polyethylene water tank specifies requirements for materials, dimensions, construction, capacity, and performance for rotomoulded polyethylene (hdpe/lldpe) water storage tanks for drinking water storage. plastics & polymers water storage containers pcd — petroleum, coal and related products  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.8944271802902222,
+      0,
+      0.4472135901451111,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 12701:1996 rotomoulded polyethylene water storage tanks specification plastics polymers water storage containers specifies requirements for materials dimensions construction capacity and performance for rotomoulded polyethylene hdpe lldpe water storage tanks for drinking water storage pcd petroleum coal and related products hdpe plastic water storage tanks water storage tanks water tank plastic tank hdpe tank polyethylene water tank",
+    "_norm_title": "rotomoulded polyethylene water storage tanks specification"
+  },
+  {
+    "is_number": "IS 3495 (Parts 1 to 4):2019",
+    "title": "Methods of Tests of Burnt Clay Building Bricks",
+    "category": "Civil Engineering & Construction",
+    "sub_category": "Clay Products for Building",
+    "product_keywords": [
+      "brick",
+      "clay brick",
+      "burnt clay brick",
+      "brick test"
+    ],
+    "scope": "Covers methods of test for determination of compressive strength, water absorption, efflorescence and dimension of burnt clay building bricks.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 30 — Clay Products for Building",
+    "type_of_standard": "Test Method",
+    "certification": {
+      "status": "Voluntary",
+      "mandatory": false
+    },
+    "normative_references": [
+      "IS 1077:1992"
+    ],
+    "test_methods": [
+      "IS 3495:2019"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IlFEMDg2a0lleUF0MWlQajFXcXBzQ1E9PSIsInZhbHVlIjoiQ0xqVTNFb1JVQWN3RkR5bUcwOStnUT09IiwibWFjIjoiZjFiMzVkMTA1OGE2YzU2NmFmZjg0YWZiMjNhNTYzZWMwZDk3YTFkZTI3ODliNWQzMWI5Njg0Zjk4YjJlN2M0MyIsInRhZyI6IiJ9&standardNumber=IS%203495%20(Part%201%20to%204):1992",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IlFEMDg2a0lleUF0MWlQajFXcXBzQ1E9PSIsInZhbHVlIjoiQ0xqVTNFb1JVQWN3RkR5bUcwOStnUT09IiwibWFjIjoiZjFiMzVkMTA1OGE2YzU2NmFmZjg0YWZiMjNhNTYzZWMwZDk3YTFkZTI3ODliNWQzMWI5Njg0Zjk4YjJlN2M0MyIsInRhZyI6IiJ9&standardNumber=IS%203495%20(Part%201%20to%204):1992",
+    "_semantic_text": "methods of tests of burnt clay building bricks methods of tests of burnt clay building bricks brick clay brick burnt clay brick brick test brick clay brick burnt clay brick brick test covers methods of test for determination of compressive strength, water absorption, efflorescence and dimension of burnt clay building bricks. civil engineering & construction clay products for building ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0.3713906705379486,
+      0,
+      0,
+      0,
+      0,
+      0.9284766912460327,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 3495 parts 1 to 4 :2019 methods of tests of burnt clay building bricks civil engineering construction clay products for building covers methods of test for determination of compressive strength water absorption efflorescence and dimension of burnt clay building bricks ced civil engineering brick clay brick burnt clay brick brick test",
+    "_norm_title": "methods of tests of burnt clay building bricks"
+  },
+  {
+    "is_number": "IS 1077:1992",
+    "title": "Common Burnt Clay Building Bricks — Specification",
+    "category": "Civil Engineering & Construction",
+    "sub_category": "Clay Products for Building",
+    "product_keywords": [
+      "brick",
+      "clay brick",
+      "building brick",
+      "red brick"
+    ],
+    "scope": "Covers the dimensions, quality, and physical requirements for common burnt clay building bricks used in general masonry construction.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 30 — Clay Products for Building",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Voluntary",
+      "mandatory": false
+    },
+    "normative_references": [
+      "IS 3495:2019"
+    ],
+    "test_methods": [
+      "IS 3495:2019"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImdoYnlkOG5JdXhIb2pIdWRqS3A4dUE9PSIsInZhbHVlIjoia0pIaXNhVXMvOHV1WHJjM08vaWFQQT09IiwibWFjIjoiYTZiMTc5MWYzMjgzN2RhYTY3Yjc3MDA4ODEzNDNjYjU2ZDQ3NjZiOGY2NDhiYWUxYzk0OGU3ZWY5YzA0ZDZkOSIsInRhZyI6IiJ9&standardNumber=IS%201077:1992",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImdoYnlkOG5JdXhIb2pIdWRqS3A4dUE9PSIsInZhbHVlIjoia0pIaXNhVXMvOHV1WHJjM08vaWFQQT09IiwibWFjIjoiYTZiMTc5MWYzMjgzN2RhYTY3Yjc3MDA4ODEzNDNjYjU2ZDQ3NjZiOGY2NDhiYWUxYzk0OGU3ZWY5YzA0ZDZkOSIsInRhZyI6IiJ9&standardNumber=IS%201077:1992",
+    "_semantic_text": "common burnt clay building bricks — specification common burnt clay building bricks — specification brick clay brick building brick red brick brick clay brick building brick red brick covers the dimensions, quality, and physical requirements for common burnt clay building bricks used in general masonry construction. civil engineering & construction clay products for building ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0.6689647436141968,
+      0,
+      0,
+      0,
+      0,
+      0.7432941794395447,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 1077:1992 common burnt clay building bricks specification civil engineering construction clay products for building covers the dimensions quality and physical requirements for common burnt clay building bricks used in general masonry construction ced civil engineering brick clay brick building brick red brick",
+    "_norm_title": "common burnt clay building bricks specification"
+  },
+  {
+    "is_number": "IS 4984:2016",
+    "title": "High Density Polyethylene (HDPE) Pipes for Water Supply — Specification",
+    "category": "Civil Engineering & Construction",
+    "sub_category": "Piping & Water Supply",
+    "product_keywords": [
+      "hdpe pipe",
+      "hdpe pipes",
+      "plastic pipe",
+      "water supply pipe",
+      "polyethylene pipe"
+    ],
+    "scope": "Specifies requirements for high density polyethylene (HDPE) pipes for water supply intended for human consumption.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 50 — Plastic Piping",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 2530:1963"
+    ],
+    "test_methods": [
+      "IS 4984:2016"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6InJlK2Y5WHphRmFtWEZ5QnFEeFJYV1E9PSIsInZhbHVlIjoiT1hocXNndU1tRjRRNjhEVTQ0L3Jtdz09IiwibWFjIjoiODkyYTgwZjNlNWI5OWVlZDdhYzM0MDg5YmM3NWI3NTJmMjk1ZjRiODhiOWFkNzAyYjUyYmE2MzExMTAyNjZjNSIsInRhZyI6IiJ9&standardNumber=IS%204984:2016",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6InJlK2Y5WHphRmFtWEZ5QnFEeFJYV1E9PSIsInZhbHVlIjoiT1hocXNndU1tRjRRNjhEVTQ0L3Jtdz09IiwibWFjIjoiODkyYTgwZjNlNWI5OWVlZDdhYzM0MDg5YmM3NWI3NTJmMjk1ZjRiODhiOWFkNzAyYjUyYmE2MzExMTAyNjZjNSIsInRhZyI6IiJ9&standardNumber=IS%204984:2016",
+    "_semantic_text": "high density polyethylene (hdpe) pipes for water supply — specification high density polyethylene (hdpe) pipes for water supply — specification hdpe pipe hdpe pipes plastic pipe water supply pipe polyethylene pipe hdpe pipe hdpe pipes plastic pipe water supply pipe polyethylene pipe specifies requirements for high density polyethylene (hdpe) pipes for water supply intended for human consumption. civil engineering & construction piping & water supply ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0.8944271802902222,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.4472135901451111,
+      0,
+      0
+    ],
+    "_search_text": "is 4984:2016 high density polyethylene hdpe pipes for water supply specification civil engineering construction piping water supply specifies requirements for high density polyethylene hdpe pipes for water supply intended for human consumption ced civil engineering hdpe pipe hdpe pipes plastic pipe water supply pipe polyethylene pipe",
+    "_norm_title": "high density polyethylene hdpe pipes for water supply specification"
+  },
+  {
+    "is_number": "IS 14864:2000",
+    "title": "Wheat Grains — Specification",
+    "category": "Food & Agriculture",
+    "sub_category": "Food Grains & Cereals",
+    "product_keywords": [
+      "wheat",
+      "wheat grains",
+      "sharbati wheat",
+      "food grains",
+      "cereal"
+    ],
+    "scope": "Prescribes requirements and methods of sampling and test for wheat grains (Triticum aestivum L. and Triticum durum Desf.) for human consumption.",
+    "bis_status": "Active",
+    "department": "FAD — Food and Agriculture",
+    "technical_committee": "FAD 16 — Foodgrains, Starches and Ready to Eat Foods",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Voluntary",
+      "mandatory": false
+    },
+    "normative_references": [
+      "IS 4333 (Part 1):1996",
+      "IS 4333 (Part 2):2002"
+    ],
+    "test_methods": [
+      "IS 4333 (Part 1):1996"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkI2dG9LTkFxNlBBaFVOSXRoakVFWXc9PSIsInZhbHVlIjoiSFVYcDYyWks5OXd1M3gyTytTWXBjUT09IiwibWFjIjoiYjM2ZDc4NWU1ZmFlN2ZhODRjOGY0NDQwZDM1MjY4NDZmNzRhNDI0YjE3ZmYwYzc5MTY2NDNmZjAxYWRjN2I4ZCIsInRhZyI6IiJ9&standardNumber=IS%2014864:2000",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkI2dG9LTkFxNlBBaFVOSXRoakVFWXc9PSIsInZhbHVlIjoiSFVYcDYyWks5OXd1M3gyTytTWXBjUT09IiwibWFjIjoiYjM2ZDc4NWU1ZmFlN2ZhODRjOGY0NDQwZDM1MjY4NDZmNzRhNDI0YjE3ZmYwYzc5MTY2NDNmZjAxYWRjN2I4ZCIsInRhZyI6IiJ9&standardNumber=IS%2014864:2000",
+    "_semantic_text": "wheat grains — specification wheat grains — specification wheat wheat grains sharbati wheat food grains cereal wheat wheat grains sharbati wheat food grains cereal prescribes requirements and methods of sampling and test for wheat grains (triticum aestivum l. and triticum durum desf.) for human consumption. food & agriculture food grains & cereals fad — food and agriculture  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0.4472135901451111,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.8944271802902222,
+      0,
+      0
+    ],
+    "_search_text": "is 14864:2000 wheat grains specification food agriculture food grains cereals prescribes requirements and methods of sampling and test for wheat grains triticum aestivum l and triticum durum desf for human consumption fad food and agriculture wheat wheat grains sharbati wheat food grains cereal",
+    "_norm_title": "wheat grains specification"
+  },
+  {
+    "is_number": "IS 2925:1984",
+    "title": "Specification for Industrial Safety Helmets",
+    "category": "Industrial Safety",
+    "sub_category": "Personal Protective Equipment",
+    "product_keywords": [
+      "helmet",
+      "safety helmet",
+      "industrial safety helmet",
+      "protective helmet",
+      "construction helmet",
+      "head protection"
+    ],
+    "scope": "Specifies requirements for materials, construction, workmanship and finish, and performance requirements for industrial safety helmets for protection against falling objects and impact hazards.",
+    "bis_status": "Active",
+    "department": "CHD — Chemical",
+    "technical_committee": "CHD 8 — Occupational Safety and Health",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 2925:1984"
+    ],
+    "test_methods": [
+      "IS 2925:1984"
+    ],
+    "amendments": [
+      "Amendment No. 1",
+      "Amendment No. 2",
+      "Amendment No. 3"
+    ],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6Ilo0REZGcFd3TWhURGFXUnZZemtveXc9PSIsInZhbHVlIjoiY1RmamRjS25DZkNHVGZSVllLMUxYQT09IiwibWFjIjoiZjI3ZDdjODA5ODI5ODQ1MjVmMjcwNGRkMjUxY2QxYTM1OTc2NDRkOGE0NDYyYjI0OGJlMjA5OWI3ZjNlNzA3NiIsInRhZyI6IiJ9&standardNumber=IS%202925:1984",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6Ilo0REZGcFd3TWhURGFXUnZZemtveXc9PSIsInZhbHVlIjoiY1RmamRjS25DZkNHVGZSVllLMUxYQT09IiwibWFjIjoiZjI3ZDdjODA5ODI5ODQ1MjVmMjcwNGRkMjUxY2QxYTM1OTc2NDRkOGE0NDYyYjI0OGJlMjA5OWI3ZjNlNzA3NiIsInRhZyI6IiJ9&standardNumber=IS%202925:1984",
+    "_semantic_text": "specification for industrial safety helmets specification for industrial safety helmets helmet safety helmet industrial safety helmet protective helmet construction helmet head protection helmet safety helmet industrial safety helmet protective helmet construction helmet head protection specifies requirements for materials, construction, workmanship and finish, and performance requirements for industrial safety helmets for protection against falling objects and impact hazards. industrial safety personal protective equipment chd — chemical  ",
+    "_concept_vector": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 2925:1984 specification for industrial safety helmets industrial safety personal protective equipment specifies requirements for materials construction workmanship and finish and performance requirements for industrial safety helmets for protection against falling objects and impact hazards chd chemical helmet safety helmet industrial safety helmet protective helmet construction helmet head protection",
+    "_norm_title": "specification for industrial safety helmets"
+  },
+  {
+    "is_number": "IS 15683:2018",
+    "title": "Portable Fire Extinguishers — Performance and Construction — Specification",
+    "category": "Civil Engineering & Safety",
+    "sub_category": "Fire Fighting Equipment",
+    "product_keywords": [
+      "fire extinguisher",
+      "portable fire extinguisher",
+      "abc fire extinguisher",
+      "co2 fire extinguisher",
+      "fire safety"
+    ],
+    "scope": "Specifies requirements for performance and construction of portable fire extinguishers for Class A, Class B, Class C, Class D and Class F fires.",
+    "bis_status": "Active",
+    "department": "CED — Civil Engineering",
+    "technical_committee": "CED 22 — Fire Fighting",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (ISI Mark)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 2190:2010"
+    ],
+    "test_methods": [
+      "IS 15683:2018"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImhPazR6VzRHcDl5L0JrUE5lL0Z0OWc9PSIsInZhbHVlIjoiWDNIYm5KYXMxS3hLTU15M1N3aUhEZz09IiwibWFjIjoiYWFmMDA2NGZhNjUzOGE1Yjg0MWIxMTQyYTRjNzg0NGExNDY3MzZhYzUzMTY0NWVlNzBjNmNhMzAyYTk0MzM1YyIsInRhZyI6IiJ9&standardNumber=IS%2015683:2018",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImhPazR6VzRHcDl5L0JrUE5lL0Z0OWc9PSIsInZhbHVlIjoiWDNIYm5KYXMxS3hLTU15M1N3aUhEZz09IiwibWFjIjoiYWFmMDA2NGZhNjUzOGE1Yjg0MWIxMTQyYTRjNzg0NGExNDY3MzZhYzUzMTY0NWVlNzBjNmNhMzAyYTk0MzM1YyIsInRhZyI6IiJ9&standardNumber=IS%2015683:2018",
+    "_semantic_text": "portable fire extinguishers — performance and construction — specification portable fire extinguishers — performance and construction — specification fire extinguisher portable fire extinguisher abc fire extinguisher co2 fire extinguisher fire safety fire extinguisher portable fire extinguisher abc fire extinguisher co2 fire extinguisher fire safety specifies requirements for performance and construction of portable fire extinguishers for class a, class b, class c, class d and class f fires. civil engineering & safety fire fighting equipment ced — civil engineering  ",
+    "_concept_vector": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "_search_text": "is 15683:2018 portable fire extinguishers performance and construction specification civil engineering safety fire fighting equipment specifies requirements for performance and construction of portable fire extinguishers for class a class b class c class d and class f fires ced civil engineering fire extinguisher portable fire extinguisher abc fire extinguisher co2 fire extinguisher fire safety",
+    "_norm_title": "portable fire extinguishers performance and construction specification"
+  },
+  {
+    "is_number": "IS 17423:2021",
+    "title": "Medical Textiles — Bio-Protective Coveralls — Specification",
+    "category": "Medical & Healthcare",
+    "sub_category": "Personal Protective Equipment",
+    "product_keywords": [
+      "medical textiles",
+      "coverall",
+      "coveralls",
+      "bio-protective coveralls",
+      "covid 19",
+      "ppe kit",
+      "protective coverall",
+      "biological protection"
+    ],
+    "scope": "Specifies requirements for bio-protective coveralls for healthcare workers and personnel providing biological protection against blood, body fluids, viruses, and infectious pathogens.",
+    "bis_status": "Active",
+    "department": "TXD — Textile Department",
+    "technical_committee": "TXD 36 — Technical Textiles for Medtech Applications",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (QCO / Statutory)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 16546:2016",
+      "IS 1969:2018",
+      "IS 7016 (Part 8):2020",
+      "IS 391:2019"
+    ],
+    "test_methods": [
+      "IS 16546:2016",
+      "IS 1969:2018",
+      "IS 7016 (Part 8):2020"
+    ],
+    "safety_standards": [
+      "Blood Resistance (Synthetic Blood Penetration Resistance)",
+      "Viral Penetration Resistance (Bacteriophage Phi-X174)",
+      "Hydrostatic Resistance & Seam Integrity Protection"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjJWNHRLeFMyUDgvY0FyQytlN3QyWnc9PSIsInZhbHVlIjoiaDQ2R3RVajdKWG9yd3VTZnJHM3gwZz09IiwibWFjIjoiODU3YjY2YTBjYzFjZGIyMDQ2ZDdjY2UwMWJjZTA3Y2VhZjAxNDdhN2M5NmNjZTlhY2VkZGNmYmRlNjRjMTgxNiIsInRhZyI6IiJ9&standardNumber=IS%2017423:2021",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjJWNHRLeFMyUDgvY0FyQytlN3QyWnc9PSIsInZhbHVlIjoiaDQ2R3RVajdKWG9yd3VTZnJHM3gwZz09IiwibWFjIjoiODU3YjY2YTBjYzFjZGIyMDQ2ZDdjY2UwMWJjZTA3Y2VhZjAxNDdhN2M5NmNjZTlhY2VkZGNmYmRlNjRjMTgxNiIsInRhZyI6IiJ9&standardNumber=IS%2017423:2021",
+    "_semantic_text": "medical textiles — bio-protective coveralls — specification medical textiles — bio-protective coveralls — specification medical textiles coverall coveralls bio-protective coveralls covid 19 ppe kit protective coverall biological protection medical textiles coverall coveralls bio-protective coveralls covid 19 ppe kit protective coverall biological protection specifies requirements for bio-protective coveralls for healthcare workers and personnel providing biological protection against blood, body fluids, viruses, and infectious pathogens. medical & healthcare personal protective equipment txd — textile department blood resistance (synthetic blood penetration resistance) viral penetration resistance (bacteriophage phi-x174) hydrostatic resistance & seam integrity protection ",
+    "_concept_vector": [
+      0.6666666865348816,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0.3333333432674408,
+      0.6666666865348816
+    ],
+    "_search_text": "is 17423:2021 medical textiles bio protective coveralls specification medical healthcare personal protective equipment specifies requirements for bio protective coveralls for healthcare workers and personnel providing biological protection against blood body fluids viruses and infectious pathogens txd textile department medical textiles coverall coveralls bio protective coveralls covid 19 ppe kit protective coverall biological protection",
+    "_norm_title": "medical textiles bio protective coveralls specification"
+  }
+]

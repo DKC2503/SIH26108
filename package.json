@@ -9,6 +9,7 @@
     "dev": "node --watch server/index.js",
     "build": "cd client && npm install && npm run build",
     "render-build": "npx playwright install chromium && cd client && npm install && npm run build",
+    "build:index": "node scripts/buildSemanticIndex.js",
     "test": "node test_node_pipeline.js"
   },
   "dependencies": {

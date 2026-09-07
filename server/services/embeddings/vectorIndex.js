@@ -2,6 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { STOP_WORDS } from '../recommendation/requirementParser.js';
+import {
+  calculateSemanticScore,
+  buildDocumentSemanticText,
+  computeConceptVector
+} from './semanticEngine.js';
+import { normalizeIndicQuery, detectLanguage } from './multilingual.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +39,7 @@ export function normalize(text) {
   return String(text)
     .toLowerCase()
     .replace(/[–—\-_/()]/g, " ")
-    .replace(/[^a-z0-9\s:]/g, " ")
+    .replace(/[^a-z0-9\s:\u0900-\u097F\u0C00-\u0C7F]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -248,19 +254,23 @@ function checkDomainCompatibility(requirementIndustry, std) {
  * Fast composite scoring with strict relevance hierarchy (< 0.1ms per standard)
  */
 export function scoreStandard(std, requirement) {
-  const product = requirement.product || "";
+  const rawProduct = requirement.product || "";
   const productType = requirement.product_type || "";
   const material = requirement.material || "";
   const industry = requirement.industry || "general";
 
   // Check direct IS number query (Highest priority: 0.99)
-  const isDirectMatch = checkIsNumberMatch(product, std.is_number) ||
+  const isDirectMatch = checkIsNumberMatch(rawProduct, std.is_number) ||
     checkIsNumberMatch(requirement.is_number_query, std.is_number);
 
   if (isDirectMatch) {
     return {
       score: 0.99,
+      is_number_score: 1.0,
       phrase_score: 1.0,
+      lexical_score: 1.0,
+      semantic_score: 1.0,
+      scope_score: 1.0,
       overlap: 1.0,
       material_match: 1.0,
       is_direct_is_match: true,
@@ -268,58 +278,73 @@ export function scoreStandard(std, requirement) {
     };
   }
 
+  // Indic normalization
+  const indic = normalizeIndicQuery(rawProduct);
+  const product = indic.normalized ? indic.normalized : rawProduct;
   const pWords = extractProductWords(product);
 
-  // If query had no meaningful product words (e.g. only stop words), return 0
-  if (pWords.length === 0) {
-    return {
-      score: 0.0,
-      phrase_score: 0.0,
-      overlap: 0.0,
-      material_match: 0.0,
-      is_direct_is_match: false
-    };
-  }
-
   // 1. Phrase matching
-  let phrase = calculatePhraseScore(product, std);
+  let phraseScore = calculatePhraseScore(product, std);
 
   if (productType && productType !== "unknown" && productType !== "is_standard" && productType !== "is_standard_query") {
     const typeClean = productType.replace(/_/g, " ");
     const phraseType = calculatePhraseScore(typeClean, std);
-    phrase = Math.max(phrase, phraseType * 0.9);
+    phraseScore = Math.max(phraseScore, phraseType * 0.9);
   }
 
-  // 2. Keyword & Title overlap
+  // 2. Keyword & Title overlap (Lexical)
   const titleOverlap = calculateWordOverlap(pWords, std.title || std.standard_name || "");
   const kwOverlap = calculateWordOverlap(pWords, Array.isArray(std.product_keywords) ? std.product_keywords.join(" ") : "");
   const scopeOverlap = calculateWordOverlap(pWords, std.scope || "");
   
   const hasKw = Array.isArray(std.product_keywords) && std.product_keywords.length > 0;
   const hasScope = Boolean(std.scope && std.scope.length > 10);
-  let textOverlap = 0.0;
+  let lexicalScore = 0.0;
   if (hasKw && hasScope) {
-    textOverlap = (0.50 * titleOverlap) + (0.35 * kwOverlap) + (0.15 * scopeOverlap);
+    lexicalScore = (0.50 * titleOverlap) + (0.35 * kwOverlap) + (0.15 * scopeOverlap);
   } else if (hasKw) {
-    textOverlap = (0.65 * titleOverlap) + (0.35 * kwOverlap);
+    lexicalScore = (0.65 * titleOverlap) + (0.35 * kwOverlap);
   } else if (hasScope) {
-    textOverlap = (0.75 * titleOverlap) + (0.25 * scopeOverlap);
+    lexicalScore = (0.75 * titleOverlap) + (0.25 * scopeOverlap);
   } else {
-    textOverlap = titleOverlap;
+    lexicalScore = titleOverlap;
   }
 
-  // If zero product words match anywhere in title or keywords, this standard is NOT relevant
-  if (titleOverlap === 0 && kwOverlap === 0 && phrase === 0) {
+  // 3. Semantic conceptual score
+  const semanticQuery = [rawProduct, product, requirement.purpose].filter(Boolean).join(" ");
+  const semanticScore = calculateSemanticScore(semanticQuery, std);
+
+  // If query had no meaningful product words and negligible semantic score, return 0
+  if (pWords.length === 0 && semanticScore < 0.35) {
     return {
       score: 0.0,
+      is_number_score: 0.0,
       phrase_score: 0.0,
+      lexical_score: 0.0,
+      semantic_score: 0.0,
+      scope_score: 0.0,
       overlap: 0.0,
       material_match: 0.0,
       is_direct_is_match: false
     };
   }
 
-  // 3. Material match
+  // If zero lexical overlap AND semantic score is negligible (< 0.35), standard is NOT relevant
+  if (titleOverlap === 0 && kwOverlap === 0 && phraseScore === 0 && semanticScore < 0.35) {
+    return {
+      score: 0.0,
+      is_number_score: 0.0,
+      phrase_score: 0.0,
+      lexical_score: 0.0,
+      semantic_score: 0.0,
+      scope_score: 0.0,
+      overlap: 0.0,
+      material_match: 0.0,
+      is_direct_is_match: false
+    };
+  }
+
+  // 4. Material match
   let materialMatch = 0.0;
   if (material) {
     const stdText = normalize(`${std.title || ""} ${std.scope || ""}`);
@@ -328,11 +353,10 @@ export function scoreStandard(std, requirement) {
     }
   }
 
-  // 4. Domain compatibility penalty / bonus
+  // 5. Domain compatibility penalty / bonus
   const domainDelta = checkDomainCompatibility(industry, std);
 
-  // 5. Test method vs Product Specification penalty
-  // A test method standard should NOT score higher than a product specification for the same product
+  // 6. Test method vs Product Specification penalty
   const titleLower = (std.title || std.standard_name || "").toLowerCase();
   const isTestMethod = titleLower.includes("methods of test") ||
     titleLower.includes("method of test") ||
@@ -342,25 +366,40 @@ export function scoreStandard(std, requirement) {
   const userAskedForTest = pWords.some(w => ["test", "testing", "sampling", "method"].includes(w));
   let testMethodPenalty = 0.0;
   if (isTestMethod && !userAskedForTest) {
-    testMethodPenalty = 0.15; // Ensure product specification ranks ahead of test method
+    testMethodPenalty = 0.15;
   }
 
-  // Calculate composite score
-  let finalScore = (0.50 * phrase) + (0.35 * textOverlap) + (0.15 * materialMatch) + domainDelta - testMethodPenalty;
+  // 7. Fused Composite Scoring:
+  // Required weights: isNumberScore: 0.35, phraseScore: 0.25, lexicalScore: 0.15, semanticScore: 0.20, scopeScore: 0.05
+  const isNumberScore = 0.0;
+  let fusedScore = (0.35 * isNumberScore) + (0.25 * phraseScore) + (0.15 * lexicalScore) + (0.20 * semanticScore) + (0.05 * scopeOverlap) + (0.10 * materialMatch) + domainDelta - testMethodPenalty;
 
-  // If title has direct product match and is a product specification, boost score
-  if (phrase >= 0.85 && !isTestMethod) {
-    finalScore = Math.max(finalScore, 0.88);
-  } else if (phrase >= 0.85 && isTestMethod) {
-    finalScore = Math.min(finalScore, 0.72); // Cap test method score below primary product specification
+  // Boost for direct phrase match or high semantic match
+  if (phraseScore >= 0.85 && !isTestMethod) {
+    fusedScore = Math.max(fusedScore, 0.88);
+  } else if (phraseScore >= 0.85 && isTestMethod) {
+    fusedScore = Math.min(Math.max(fusedScore, 0.55), 0.72);
+  } else if (semanticScore >= 0.80 && !isTestMethod) {
+    fusedScore = Math.max(fusedScore, 0.82);
+  } else if (semanticScore >= 0.65 && !isTestMethod) {
+    fusedScore = Math.max(fusedScore, 0.72);
   }
 
-  finalScore = Math.max(0.0, Math.min(1.0, finalScore));
+  // Rejection threshold guard: anything below 0.35 is strictly 0
+  if (fusedScore < 0.35) {
+    fusedScore = 0.0;
+  }
+
+  const finalScore = Math.max(0.0, Math.min(1.0, fusedScore));
 
   return {
     score: Math.round(finalScore * 1000) / 1000,
-    phrase_score: Math.round(phrase * 1000) / 1000,
-    overlap: Math.round(textOverlap * 1000) / 1000,
+    is_number_score: Math.round(isNumberScore * 1000) / 1000,
+    phrase_score: Math.round(phraseScore * 1000) / 1000,
+    lexical_score: Math.round(lexicalScore * 1000) / 1000,
+    semantic_score: Math.round(semanticScore * 1000) / 1000,
+    scope_score: Math.round(scopeOverlap * 1000) / 1000,
+    overlap: Math.round(lexicalScore * 1000) / 1000,
     material_match: Math.round(materialMatch * 1000) / 1000,
     is_direct_is_match: false
   };
@@ -372,23 +411,38 @@ export function scoreStandard(std, requirement) {
  */
 export function initLocalIndex() {
   try {
+    const indexPath = path.resolve(__dirname, '../../../data/semantic_index.json');
     const dataPath = path.resolve(__dirname, '../../../data/local_standards.json');
-    if (fs.existsSync(dataPath)) {
+
+    if (fs.existsSync(indexPath)) {
+      const raw = fs.readFileSync(indexPath, 'utf-8');
+      inMemoryStandards = JSON.parse(raw);
+    } else if (fs.existsSync(dataPath)) {
       const raw = fs.readFileSync(dataPath, 'utf-8');
       inMemoryStandards = JSON.parse(raw);
     } else {
-      console.warn(`[LocalIndex] File not found at ${dataPath}`);
+      console.warn(`[LocalIndex] Standards file not found at ${dataPath}`);
       inMemoryStandards = [];
     }
 
-    // Pre-cache normalized texts for every standard
+    // Pre-cache normalized texts, concept vectors, and search representations
     for (const std of inMemoryStandards) {
-      std._search_text = buildStandardText(std);
-      std._norm_title = normalize(std.title || "");
+      if (!std._semantic_text) {
+        std._semantic_text = buildDocumentSemanticText(std);
+      }
+      if (!std._concept_vector) {
+        std._concept_vector = computeConceptVector(std._semantic_text);
+      }
+      if (!std._search_text) {
+        std._search_text = buildStandardText(std);
+      }
+      if (!std._norm_title) {
+        std._norm_title = normalize(std.title || "");
+      }
     }
 
     localIndexStatus = "ready";
-    console.log(`[LocalIndex] READY — Pre-loaded ${inMemoryStandards.length} real Indian Standards in memory`);
+    console.log(`[LocalIndex] READY — Pre-loaded and vectorized ${inMemoryStandards.length} real Indian Standards in memory`);
   } catch (err) {
     console.error(`[LocalIndex] Initialization error: ${err.message}`);
     localIndexStatus = "error";

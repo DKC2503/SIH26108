@@ -14,6 +14,14 @@ const canonicalQueries = [
   { q: "IS 3495:2019", expectedIs: "IS 3495 (Parts 1 to 4):2019", isDirect: true },
   { q: "bread food", expectedProduct: "bread", expectBisQueries: ["bread", "bread products", "bakery products"] },
   { q: "airplane engine", expectNoMatch: true },
+  // Semantic conceptual queries
+  { q: "protective headgear for construction workers", expectedIs: "IS 2925:1984", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "steel bars used to reinforce concrete structures", expectedIs: "IS 1786:2008", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "lighting installed along public roads", expectedIs: "IS 10322 (Part 5/Sec 3):2012", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "cement used for structural construction", expectedIs: "IS 269:2015", expectedClassification: "DIRECT_PRODUCT" },
+  // Multilingual semantic queries (Telugu & Hindi)
+  { q: "నిర్మాణ కార్మికుల కోసం రక్షణ హెల్మెట్", expectedIs: "IS 2925:1984", expectedClassification: "DIRECT_PRODUCT" },
+  { q: "निर्माण श्रमिकों के लिए सुरक्षा हेलमेट", expectedIs: "IS 2925:1984", expectedClassification: "DIRECT_PRODUCT" },
   // General unseeded products testing live BIS retrieval
   { q: "battery", expectedLiveMatch: true },
   { q: "bread", expectedLiveMatch: true },

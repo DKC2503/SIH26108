@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { normalizeIndicQuery, detectLanguage } from '../embeddings/multilingual.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,12 +30,14 @@ export const PRODUCT_ALIASES = [
   [/\bwhite cement\b/i, "cement", "white_portland_cement"],
   [/\bhydrophobic cement\b/i, "cement", "hydrophobic_portland_cement"],
   [/\b(?:ordinary )?portland cement\b/i, "cement", "ordinary_portland_cement"],
+  [/\bcement\s+used\s+for\s+(?:structural\s+)?construction\b|\bstructural\s+construction\s+cement\b/i, "cement", "ordinary_portland_cement"],
   [/\bopc\b/i, "cement", "ordinary_portland_cement"],
   [/\bcement\b/i, "cement", "cement"],
 
   // Steel & Rebar
   [/\bhigh tensile (?:steel )?rebars?\b/i, "steel bar", "high_tensile_rebar"],
   [/\bhigh strength deformed steel bars?\b/i, "steel bar", "tmt_bar"],
+  [/\b(?:steel\s+)?bars?\s+(?:used\s+)?(?:to\s+)?reinforce\b|\bconcrete\s+reinforcement\b/i, "steel bar", "high_tensile_rebar"],
   [/\btmt bars?\b/i, "steel bar", "tmt_bar"],
   [/\brebars?\b/i, "steel bar", "rebar"],
   [/\b(?:steel )?structural components?\b/i, "structural steel", "structural_steel"],
@@ -87,6 +90,7 @@ export const PRODUCT_ALIASES = [
 
   // Electrical & Lighting
   [/\bled street lights?\b/i, "led street light", "led_street_light"],
+  [/\blighting\s+installed\s+along\s+public\s+roads?\b|\broad\s+lighting\b|\bpublic\s+road\s+lighting\b/i, "led street light", "led_street_light"],
   [/\bstreet lights?\b/i, "street light", "led_street_light"],
   [/\bled (?:lamp|bulb|light)s?\b/i, "LED lamp", "led_lamp"],
   [/\bbulbs?\b|\bleds?\b/i, "LED lamp", "led_lamp"],
@@ -112,9 +116,10 @@ export const PRODUCT_ALIASES = [
   // Stationery
   [/\bball(?:\s|-)?point pens?\b|\bball pens?\b|\bpens?\b/i, "ball point pen", "ball_point_pen"],
 
-  // Safety
+  // Safety & Headgear
   [/\b(?:industrial\s+)?(?:safety\s+)?helmets?\b/i, "safety helmet", "safety_helmet"],
   [/\bhelmets?\b/i, "safety helmet", "safety_helmet"],
+  [/\bprotective headgear\b|\bhead protection\b|\bhard hats?\b/i, "safety helmet", "safety_helmet"],
   [/\b(?:safety\s+)?shoes?\b|\bboots?\b/i, "safety shoes", "safety_shoes"],
 
   // Construction materials
@@ -161,7 +166,9 @@ const INDUSTRY_MAP = {
  */
 export function parseRequirementLocal(query) {
   const q = (query || "").trim();
-  const qLower = q.toLowerCase();
+  const detectedLang = detectLanguage(q);
+  const indic = detectedLang !== "English" ? normalizeIndicQuery(q) : null;
+  const qLower = indic && indic.normalized ? `${indic.normalized} ${q.toLowerCase()}` : q.toLowerCase();
 
   let product = null;
   let productType = null;
@@ -308,7 +315,7 @@ export function parseRequirementLocal(query) {
   }
 
   return {
-    language: "English",
+    language: detectedLang,
     product: product || "unknown product",
     product_type: productType || "unknown",
     material: material,
