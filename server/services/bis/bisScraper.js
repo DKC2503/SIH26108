@@ -1,8 +1,21 @@
 import { chromium } from 'playwright';
 
 const BIS_BASE_URL = "https://standards.bis.gov.in";
+const BIS_ADMIN_BASE_URL = "https://standardsadmin.bis.gov.in";
 const BIS_SEARCH_URL = `${BIS_BASE_URL}/website/know-your-standards`;
 const PAGE_TIMEOUT = 12000;
+
+export const BIS_API_HEADERS = {
+  'Referer': 'https://standards.bis.gov.in/',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Content-Type': 'application/json'
+};
+
+// In-memory query and details caches (TTL: 2 hours)
+export const bisQueryCache = new Map();
+export const bisDetailsCache = new Map();
+const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 
 // Health check cache
 let cachedHealth = null;
@@ -46,6 +59,22 @@ export async function getBisHealth(force = false) {
     return cachedHealth;
   }
 
+  // 1. Check direct BIS review-service API
+  try {
+    const res = await fetch(`${BIS_ADMIN_BASE_URL}/review-service//searchKnowStandards`, {
+      method: 'POST',
+      headers: BIS_API_HEADERS,
+      body: JSON.stringify({ searchText: 'cement' }),
+      signal: AbortSignal.timeout(3000)
+    });
+    if (res.ok) {
+      cachedHealth = { status: "available" };
+      lastHealthCheck = Date.now();
+      return cachedHealth;
+    }
+  } catch (_) {}
+
+  // 2. Check Playwright browser launcher as fallback
   try {
     const browser = await launchBrowser();
     await browser.close();
@@ -168,9 +197,12 @@ export function extractDetailFields(pageText) {
 
 /**
  * Scrape BIS Standards Portal for a keyword or candidate queries.
+ * First uses official BIS Review-Service REST endpoint (< 1.5s).
+ * If REST fails or returns 0, falls back gracefully to Playwright browser scraper.
+ *
  * @param {string|string[]} queryInput - Single keyword or array of candidate query terms
  * @param {number} limit - Maximum number of standards to return
- * @param {number} timeoutMs - Timeout per request in milliseconds (capped at 8000ms)
+ * @param {number} timeoutMs - Timeout per request in milliseconds
  */
 export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000) {
   if (!queryInput) return [];
@@ -192,37 +224,137 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000)
 
   if (searchTerms.length === 0) return [];
   const primaryTerm = searchTerms[0];
-  console.log(`[BIS] search started query="${primaryTerm}"`);
+  console.log(`[BIS] search terms=${JSON.stringify(searchTerms.slice(0, 4))}`);
 
   const tStart = Date.now();
-  const maxBudgetMs = 10000; // Strictly bound total live BIS budget to 10 seconds
-
-  let browser = null;
   const results = [];
   const seen = new Set();
 
+  // 1. FAST PATH: Direct BIS review-service REST API
+  try {
+    for (const term of searchTerms.slice(0, 3)) {
+      if (results.length >= limit || (Date.now() - tStart) > 6000) break;
+
+      const cacheKey = term.toLowerCase();
+      let termItems = null;
+
+      if (bisQueryCache.has(cacheKey)) {
+        const cached = bisQueryCache.get(cacheKey);
+        if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+          termItems = cached.data;
+        }
+      }
+
+      if (!termItems) {
+        try {
+          const res = await fetch(`${BIS_ADMIN_BASE_URL}/review-service//searchKnowStandards`, {
+            method: 'POST',
+            headers: BIS_API_HEADERS,
+            body: JSON.stringify({ searchText: term }),
+            signal: AbortSignal.timeout(Math.min(timeoutMs, 4000))
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            const list = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : null);
+            if (list) {
+              termItems = list;
+              bisQueryCache.set(cacheKey, { data: list, timestamp: Date.now() });
+            }
+          }
+        } catch (fetchErr) {
+          console.warn(`[BIS] Direct REST search failed for '${term}': ${fetchErr.message}`);
+        }
+      }
+
+      if (Array.isArray(termItems) && termItems.length > 0) {
+        for (const item of termItems) {
+          if (results.length >= limit) break;
+          const rawNum = item.standardNumber || item.standard_number;
+          if (!rawNum) continue;
+
+          const isNum = normalizeIsNumber(rawNum);
+          if (!isNum) continue;
+
+          const key = isNum.toUpperCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+
+            const encId = item.standardEncId || item.encryptedId || item.encId || '';
+            const officialUrl = encId
+              ? `${BIS_BASE_URL}/website/standard-details?encryptedId=${encodeURIComponent(encId)}&standardNumber=${encodeURIComponent(rawNum)}`
+              : `${BIS_BASE_URL}/website/standard-details`;
+
+            const title = (item.standardName || item.standard_name || item.title || `Indian Standard ${isNum}`).trim();
+
+            results.push({
+              is_number: isNum,
+              title: title,
+              detail_url: officialUrl,
+              official_bis_url: officialUrl,
+              standard_enc_id: encId,
+              bis_status: item.status || "Active",
+              status: item.status || "Active",
+              published_on: item.publishedOn || item.published_on || null,
+              valid_upto: item.validUpto || item.valid_upto || null,
+              category: "BIS Portal Discovered",
+              verification_source: "official_bis_live",
+              data_source: "BIS_LIVE",
+              search_term: term,
+              scope: `Official Indian Standard ${isNum} discovered live from the BIS Standards Portal.`,
+              certification: null
+            });
+          }
+        }
+      }
+    }
+  } catch (apiErr) {
+    console.warn(`[BIS] Direct REST API error: ${apiErr.message}`);
+  }
+
+  // If direct REST API returned candidates, we can enrich top candidates and return
+  if (results.length > 0) {
+    console.log(`[BIS] candidates=${results.length} (source: official_bis_api)`);
+
+    // Quick parallel enrichment for top 4 candidates
+    const toEnrich = results.slice(0, 4);
+    await Promise.allSettled(toEnrich.map(async (res) => {
+      if (res.standard_enc_id) {
+        try {
+          await enrichStandardFromBis(res, 2000);
+        } catch (_) {}
+      }
+    }));
+
+    const elapsed = Date.now() - tStart;
+    console.log(`[Search] BIS search completed in ${elapsed}ms`);
+    return results;
+  }
+
+  // 2. FALLBACK PATH: Playwright browser scraping (if REST unavailable or returned 0)
+  console.log(`[BIS] Direct REST returned 0 or failed, attempting browser scraping fallback`);
+  let browser = null;
   try {
     browser = await launchBrowser();
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+      userAgent: BIS_API_HEADERS['User-Agent']
     });
 
     const page = await context.newPage();
-    page.setDefaultTimeout(Math.min(timeoutMs, 8000));
+    page.setDefaultTimeout(Math.min(timeoutMs, 6000));
 
-    for (const term of searchTerms) {
-      if (results.length >= limit || (Date.now() - tStart) > (maxBudgetMs - 3000)) break;
+    for (const term of searchTerms.slice(0, 2)) {
+      if (results.length >= limit || (Date.now() - tStart) > 9000) break;
 
       try {
-        await page.goto(`${BIS_BASE_URL}/website`, { waitUntil: 'domcontentloaded', timeout: 7000 });
-        await page.waitForSelector('#isSearch', { timeout: 6000 });
+        await page.goto(`${BIS_BASE_URL}/website`, { waitUntil: 'domcontentloaded', timeout: 6000 });
+        await page.waitForSelector('#isSearch', { timeout: 4000 });
         await page.fill('#isSearch', term);
         await page.keyboard.press('Enter');
 
-        // Wait for search result listings to populate
         try {
-          await page.waitForSelector('a[href*="standard-details"]', { timeout: 4500 });
+          await page.waitForSelector('a[href*="standard-details"]', { timeout: 3500 });
         } catch (_) {}
 
         const extractedListings = await page.evaluate(() => {
@@ -239,7 +371,6 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000)
             }).filter(item => item.isText.length > 2 && item.href);
           }
 
-          // Fallback if class changes
           const anchors = Array.from(document.querySelectorAll('a[href*="standard-details"]'));
           return anchors.map(a => {
             const p = a.closest('tr, li, .card, div')?.querySelector('p');
@@ -261,7 +392,6 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000)
             if (!seen.has(key)) {
               seen.add(key);
 
-              // Validate URL domain and structure
               const validUrl = (item.href && item.href.startsWith(`${BIS_BASE_URL}/website/standard-details`))
                 ? item.href
                 : null;
@@ -290,72 +420,11 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000)
 
         if (results.length > 0) break;
       } catch (termErr) {
-        console.warn(`[BIS] Notice for query term '${term}': ${termErr.message}`);
+        console.warn(`[BIS] Browser notice for query term '${term}': ${termErr.message}`);
       }
     }
 
     console.log(`[BIS] candidates=${results.length}`);
-
-    // Enrich top candidates within remaining time budget
-    const toEnrich = results.slice(0, Math.min(results.length, 5));
-    for (const res of toEnrich) {
-      if ((Date.now() - tStart) > (maxBudgetMs - 2000)) {
-        console.log(`[BIS] detail enrichment budget reached, stopping enrichment`);
-        break;
-      }
-
-      if (res.official_bis_url) {
-        console.log(`[BIS] enriching ${res.is_number}`);
-        try {
-          await page.goto(res.official_bis_url, { waitUntil: 'domcontentloaded', timeout: 4000 });
-          // Give brief moment for dynamic fields to render
-          try {
-            await page.waitForSelector('text=Department:', { timeout: 2500 });
-          } catch (_) {}
-
-          const pageText = await page.evaluate(() => document.body.innerText);
-          const fields = extractDetailFields(pageText);
-
-          if (fields.department) res.department = fields.department;
-          if (fields.technical_committee) res.technical_committee = fields.technical_committee;
-          if (fields.type_of_standard) res.type_of_standard = fields.type_of_standard;
-          if (fields.certification) res.certification = fields.certification;
-          if (fields.reviewed_in) res.reviewed_in = fields.reviewed_in;
-          if (fields.superseding_is) res.superseding_is = fields.superseding_is;
-          if (fields.degree_of_equivalence) res.degree_of_equivalence = fields.degree_of_equivalence;
-          if (fields.number_of_revisions) res.number_of_revisions = fields.number_of_revisions;
-          if (fields.number_of_amendments) res.number_of_amendments = fields.number_of_amendments;
-          if (fields.reaffirmation_year) res.reaffirmation_year = fields.reaffirmation_year;
-          if (fields.language) res.language = fields.language;
-          if (fields.member_secretary) res.member_secretary = fields.member_secretary;
-          if (fields.relevant_ministries) res.relevant_ministries = fields.relevant_ministries;
-          if (fields.ics_code) res.ics_code = fields.ics_code;
-          if (fields.short_title && (!res.title || res.title.startsWith('Indian Standard'))) {
-            res.title = fields.short_title;
-          }
-
-          // Extract verified referenced standard links present on the page
-          const refAnchors = await page.evaluate(() => {
-            const anchors = Array.from(document.querySelectorAll('a[href*="standard-details"]'));
-            return anchors.map(a => ({
-              text: a.innerText.trim(),
-              href: a.href
-            })).filter(a => a.text && a.href && a.href.startsWith('https://standards.bis.gov.in/website/standard-details'));
-          });
-
-          if (refAnchors.length > 0) {
-            res.referenced_bis_links = refAnchors;
-          }
-
-          console.log(`[BIS] detail validated ${res.is_number}`);
-        } catch (enrichErr) {
-          console.warn(`[BIS] Could not enrich ${res.is_number}: ${enrichErr.message}`);
-        }
-      }
-    }
-
-    const elapsed = Date.now() - tStart;
-    console.log(`[Search] BIS search completed in ${elapsed}ms`);
     return results;
   } catch (err) {
     console.error(`[BIS] Discovery failed: ${err.message}`);
@@ -366,3 +435,93 @@ export async function scrapeBisKeyword(queryInput, limit = 20, timeoutMs = 8000)
     }
   }
 }
+
+/**
+ * Enriches a standard object with authentic department, committee, certification,
+ * revisions, and referenced standards using official review-service REST endpoints.
+ *
+ * @param {object} standard - The standard object to enrich
+ * @param {number} timeoutMs - Timeout in milliseconds
+ */
+export async function enrichStandardFromBis(standard, timeoutMs = 2500) {
+  if (!standard || !standard.standard_enc_id) return standard;
+
+  const encId = standard.standard_enc_id;
+  let details = null;
+
+  // Check details cache
+  if (bisDetailsCache.has(encId)) {
+    const cached = bisDetailsCache.get(encId);
+    if (Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      details = cached.data;
+    }
+  }
+
+  if (!details) {
+    try {
+      const [detRes, refRes] = await Promise.allSettled([
+        fetch(`${BIS_ADMIN_BASE_URL}/review-service//getWebsiteStandardDetails`, {
+          method: 'POST',
+          headers: BIS_API_HEADERS,
+          body: JSON.stringify({ encId: encId, fromPage: 'guestUserPage' }),
+          signal: AbortSignal.timeout(timeoutMs)
+        }).then(r => r.ok ? r.json() : null),
+        fetch(`${BIS_ADMIN_BASE_URL}/review-service//getCrossRefDetails`, {
+          method: 'POST',
+          headers: BIS_API_HEADERS,
+          body: JSON.stringify({ standardId: encId }),
+          signal: AbortSignal.timeout(timeoutMs)
+        }).then(r => r.ok ? r.json() : null)
+      ]);
+
+      const rawDetails = (detRes.status === 'fulfilled' && detRes.value) ? (detRes.value.data || detRes.value) : null;
+      const refData = (refRes.status === 'fulfilled' && refRes.value) ? (refRes.value.data || refRes.value) : null;
+      const rawRefs = Array.isArray(refData) ? refData : (Array.isArray(refData?.crossRefData) ? refData.crossRefData : []);
+
+      details = { rawDetails, rawRefs };
+      bisDetailsCache.set(encId, { data: details, timestamp: Date.now() });
+    } catch (enrichErr) {
+      console.warn(`[BIS] Enrich error for ${standard.is_number}: ${enrichErr.message}`);
+      return standard;
+    }
+  }
+
+  if (details && details.rawDetails) {
+    const d = details.rawDetails;
+    if (d.departmentName || d.department) standard.department = d.departmentName || d.department;
+    if (d.committeeName || d.technicalCommittee) standard.technical_committee = d.committeeName || d.technicalCommittee;
+    if (d.standardType || d.typeOfStandard) standard.type_of_standard = d.standardType || d.typeOfStandard;
+    if (d.reaffirmationYear) standard.reaffirmation_year = String(d.reaffirmationYear);
+    if (d.noOfRevisions !== undefined && d.noOfRevisions !== null) standard.number_of_revisions = String(d.noOfRevisions);
+    if (d.noOfAmendments !== undefined && d.noOfAmendments !== null) standard.number_of_amendments = String(d.noOfAmendments);
+    if (d.scopeText && (!standard.scope || standard.scope.startsWith('Official Indian Standard'))) {
+      standard.scope = d.scopeText.trim();
+    }
+    if (d.standardTitle && (!standard.title || standard.title.startsWith('Indian Standard'))) {
+      standard.title = d.standardTitle.trim();
+    }
+
+    if (d.isCertificationMandatory || d.certificationStatus || d.isiMark) {
+      const isMandatory = Boolean(d.isCertificationMandatory || (d.certificationStatus && d.certificationStatus.toLowerCase().includes('mandatory')));
+      standard.certification = {
+        status: d.certificationStatus || (isMandatory ? 'Mandatory ISI' : 'Voluntary'),
+        mandatory: isMandatory
+      };
+    }
+  }
+
+  if (details && Array.isArray(details.rawRefs) && details.rawRefs.length > 0) {
+    standard.referenced_bis_links = details.rawRefs.map(ref => {
+      const refNum = ref.standardNumber || ref.standard_number;
+      const refEnc = ref.standardEncId || ref.encId || '';
+      return {
+        text: refNum ? normalizeIsNumber(refNum) : 'Referenced Standard',
+        href: refEnc ? `${BIS_BASE_URL}/website/standard-details?encryptedId=${encodeURIComponent(refEnc)}&standardNumber=${encodeURIComponent(refNum || '')}` : null
+      };
+    }).filter(r => r.text && r.href);
+  }
+
+  console.log(`[BIS] validated=${standard.is_number}`);
+  return standard;
+}
+

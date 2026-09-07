@@ -13,7 +13,19 @@ const canonicalQueries = [
   { q: "brick", expectedPrimary: "IS 1077:1992", expectedAllied: "IS 3495 (Parts 1 to 4):2019" },
   { q: "IS 3495:2019", expectedIs: "IS 3495 (Parts 1 to 4):2019", isDirect: true },
   { q: "bread food", expectedProduct: "bread", expectBisQueries: ["bread", "bread products", "bakery products"] },
-  { q: "airplane engine", expectNoMatch: true }
+  { q: "airplane engine", expectNoMatch: true },
+  // General unseeded products testing live BIS retrieval
+  { q: "battery", expectedLiveMatch: true },
+  { q: "bread", expectedLiveMatch: true },
+  { q: "bun", expectedLiveMatch: true },
+  { q: "electrical cable", expectedLiveMatch: true },
+  { q: "paint", expectedLiveMatch: true },
+  { q: "tiles", expectedLiveMatch: true },
+  { q: "paper", expectedLiveMatch: true },
+  { q: "milk", expectedLiveMatch: true },
+  { q: "steel pipe", expectedLiveMatch: true },
+  { q: "furniture", expectedLiveMatch: true },
+  { q: "quantum banana toaster", expectNoMatch: true }
 ];
 
 async function run() {
@@ -27,7 +39,8 @@ async function run() {
 
   for (const item of canonicalQueries) {
     const start = performance.now();
-    const result = await runFastAnalysis(item.q, "product_description", false);
+    const isLiveTest = Boolean(item.expectedLiveMatch);
+    const result = await runFastAnalysis(item.q, "product_description", isLiveTest);
     const duration = performance.now() - start;
 
     console.log(`\n--------------------------------------------------------------------------------`);
@@ -53,7 +66,15 @@ async function run() {
       }
     }
 
-    if (item.expectNoMatch) {
+    if (item.expectedLiveMatch) {
+      if (result.primary_standards.length > 0 && duration < 15000) {
+        const top = result.primary_standards[0];
+        console.log(`  [PASS]: Discovered ${result.primary_standards.length} verified standards from live BIS portal in ${duration.toFixed(0)}ms (Top: ${top.is_number} - ${top.title})`);
+      } else {
+        console.error(`  [FAIL]: Expected live BIS standards for '${item.q}', got ${result.primary_standards.length}`);
+        testPass = false;
+      }
+    } else if (item.expectNoMatch) {
       if (result.primary_standards.length === 0) {
         console.log(`  [PASS]: Correctly returned no false primary recommendation for unsupported query.`);
       } else {

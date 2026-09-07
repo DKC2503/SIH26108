@@ -271,64 +271,147 @@ export async function runFastAnalysis(query, inputType = "product_description", 
   }
   const tReq = Date.now() - tReq0;
 
-  // Step 2: Multi-source candidate retrieval
+  // Step 2: Multi-source candidate retrieval (Local + Mongo + Live BIS concurrently)
   const tRet0 = Date.now();
   let candidatePool = [];
   let mongoUsed = false;
+  let mongoCandidateCount = 0;
+  let localCandidateCount = 0;
+  let bisCandidateCount = 0;
+  let bisValidatedCount = 0;
+  let bisStatus = "not_needed";
+  let bisReason = null;
+  let liveBisUsed = false;
   const seenIS = new Set();
 
-  // 2a. MongoDB Atlas retrieval with REAL SCORING
-  if (isMongoConnected()) {
-    try {
-      const coll = getStandardsCollection();
-      const product = requirement.product || "";
-      const regex = new RegExp(product.replace(/[^a-z0-9]/gi, ".*"), "i");
-      const docs = await coll.find({
-        $or: [
-          { title: { $regex: regex } },
-          { product_keywords: { $regex: regex } }
-        ]
-      }, { projection: { _id: 0 } }).limit(15).toArray();
+  const candidateBisQueries = requirement.bis_search_queries && requirement.bis_search_queries.length > 0
+    ? requirement.bis_search_queries
+    : [requirement.product];
 
-      if (docs.length > 0) {
-        for (const doc of docs) {
-          const details = scoreStandard(doc, requirement);
-          if (details.score >= 0.35) {
-            const key = (doc.is_number || "").toUpperCase();
-            if (!seenIS.has(key)) {
-              seenIS.add(key);
-              candidatePool.push({
-                standard: {
-                  ...doc,
-                  verification_source: doc.verification_source || "mongodb_cache",
-                  data_source: "MONGODB_CACHE"
-                },
-                score: details.score,
-                score_details: details
-              });
-            }
+  console.log(`[BIS] search terms=${JSON.stringify(candidateBisQueries.slice(0, 4))}`);
+
+  // Parallel retrieval from Local Index, MongoDB (if enabled), and Live BIS (if enabled)
+  const retrievalTasks = [];
+
+  // Task A: Local Index
+  retrievalTasks.push((async () => {
+    try {
+      const candidates = searchLocalStandards(requirement, 20);
+      return { type: 'local', candidates };
+    } catch (e) {
+      console.warn(`[Local] retrieval failed: ${e.message}`);
+      return { type: 'local', candidates: [] };
+    }
+  })());
+
+  // Task B: MongoDB
+  if (isMongoConnected()) {
+    retrievalTasks.push((async () => {
+      try {
+        const coll = getStandardsCollection();
+        const product = requirement.product || "";
+        const regex = new RegExp(product.replace(/[^a-z0-9]/gi, ".*"), "i");
+        const docs = await coll.find({
+          $or: [
+            { title: { $regex: regex } },
+            { product_keywords: { $regex: regex } }
+          ]
+        }, { projection: { _id: 0 } }).limit(20).toArray();
+        return { type: 'mongo', candidates: docs };
+      } catch (e) {
+        return { type: 'mongo', candidates: [] };
+      }
+    })());
+  }
+
+  // Task C: Live BIS Discovery
+  if (enableBisDiscovery) {
+    retrievalTasks.push((async () => {
+      try {
+        const bisHealth = await getBisHealth();
+        if (bisHealth.status === "available") {
+          const liveResults = await scrapeBisKeyword(candidateBisQueries, 20, 8000);
+          return { type: 'bis', status: 'available', candidates: liveResults };
+        } else {
+          return { type: 'bis', status: 'unavailable', reason: bisHealth.reason || 'playwright_browser_missing', candidates: [] };
+        }
+      } catch (e) {
+        return { type: 'bis', status: 'error', reason: e.message, candidates: [] };
+      }
+    })());
+  }
+
+  const settlement = await Promise.allSettled(retrievalTasks);
+
+  for (const res of settlement) {
+    if (res.status !== 'fulfilled') continue;
+    const { type, candidates, status, reason } = res.value;
+
+    if (type === 'local') {
+      localCandidateCount = candidates.length;
+      for (const item of candidates) {
+        const isNum = item.standard.is_number;
+        const key = (isNum || "").toUpperCase();
+        if (!seenIS.has(key)) {
+          seenIS.add(key);
+          candidatePool.push(item);
+        }
+      }
+    } else if (type === 'mongo') {
+      mongoCandidateCount = candidates.length;
+      if (candidates.length > 0) mongoUsed = true;
+      for (const doc of candidates) {
+        const details = scoreStandard(doc, requirement);
+        if (details.score >= 0.35) {
+          const key = (doc.is_number || "").toUpperCase();
+          if (!seenIS.has(key)) {
+            seenIS.add(key);
+            candidatePool.push({
+              standard: {
+                ...doc,
+                verification_source: doc.verification_source || "mongodb_cache",
+                data_source: "MONGODB_CACHE"
+              },
+              score: details.score,
+              score_details: details
+            });
           }
         }
-        mongoUsed = true;
       }
-    } catch (_) {
-      // Gracefully continue to local index
+    } else if (type === 'bis') {
+      bisCandidateCount = candidates.length;
+      if (status === 'unavailable') {
+        bisStatus = 'unavailable';
+        bisReason = reason;
+      } else if (status === 'error') {
+        bisStatus = 'error';
+        bisReason = reason;
+      } else {
+        bisStatus = candidates.length > 0 ? 'success' : 'searched_no_results';
+      }
+
+      for (const liveStd of candidates) {
+        const isNum = liveStd.is_number;
+        const key = (isNum || "").toUpperCase();
+        if (!seenIS.has(key)) {
+          seenIS.add(key);
+          const details = scoreStandard(liveStd, requirement);
+          candidatePool.push({
+            standard: liveStd,
+            score: details.score,
+            score_details: details
+          });
+        }
+      }
     }
   }
 
-  // 2b. In-memory local standards search with REAL SCORING
-  const localCandidates = searchLocalStandards(requirement, 15);
-  for (const item of localCandidates) {
-    const key = (item.standard.is_number || "").toUpperCase();
-    if (!seenIS.has(key)) {
-      seenIS.add(key);
-      candidatePool.push(item);
-    }
-  }
   const tRet = Date.now() - tRet0;
-  console.log(`[Local] candidates=${candidatePool.length}`);
+  console.log(`[Local] candidates=${localCandidateCount}`);
+  console.log(`[Mongo] candidates=${mongoCandidateCount}`);
+  console.log(`[BIS] candidates=${bisCandidateCount}`);
 
-  // Step 3: Candidate classification and initial filtering
+  // Step 3: Candidate scoring, classification, and ranking
   const tRank0 = Date.now();
   let primaryStandards = [];
   const alliedStandards = {
@@ -341,21 +424,38 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     related_products: []
   };
 
+  let acceptedCount = 0;
+  let rejectedCount = 0;
+
   for (const item of candidatePool) {
     const std = item.standard;
     const scoreDetails = item.score_details || scoreStandard(std, requirement);
     const compositeScore = scoreDetails.score;
 
-    if (compositeScore < 0.35) continue;
+    if (compositeScore < 0.35) {
+      rejectedCount++;
+      console.log(`[Reject] IS ${std.is_number} score=${compositeScore.toFixed(2)} reason=below_threshold`);
+      continue;
+    }
 
     const verification = determineVerificationStatus(std);
     const cls = localClassify(std, requirement, scoreDetails);
-    if (cls.classification === "UNRELATED") continue;
 
+    if (cls.classification === "UNRELATED") {
+      rejectedCount++;
+      console.log(`[Reject] IS ${std.is_number} score=${compositeScore.toFixed(2)} reason=unrelated_classification`);
+      continue;
+    }
+
+    acceptedCount++;
     const explanation = generateEvidenceBasedExplanation(std, requirement, cls.classification, compositeScore, scoreDetails);
     const formatted = formatStandard(std, requirement, cls.classification, compositeScore, explanation, verification);
 
-    // Primary standards must be DIRECT_PRODUCT, have score >= 0.65, and be eligible
+    if (std.verification_source === 'official_bis_live' || std.data_source === 'BIS_LIVE') {
+      bisValidatedCount++;
+    }
+
+    // Primary standards must be DIRECT_PRODUCT, score >= 0.65, and eligible
     if (cls.classification === "DIRECT_PRODUCT" && compositeScore >= 0.65 && verification.eligible_for_recommendation) {
       primaryStandards.push(formatted);
     } else if (cls.classification === "TEST_METHOD" && compositeScore >= 0.40) {
@@ -368,96 +468,35 @@ export async function runFastAnalysis(query, inputType = "product_description", 
       alliedStandards.terminology.push(formatted);
     } else if (["CROSS_REFERENCE", "NORMATIVE_REFERENCE"].includes(cls.classification) && compositeScore >= 0.40) {
       alliedStandards.cross_references.push(formatted);
-    } else if (compositeScore >= 0.45) {
+    } else if (compositeScore >= 0.40) {
       alliedStandards.related_products.push(formatted);
     }
   }
 
   // Sort candidates by score descending
   primaryStandards.sort((a, b) => b.score - a.score);
+  liveBisUsed = primaryStandards.some(s => s.verification_source === "official_bis_live" || s.data_source === "BIS_LIVE");
 
-  // Step 4: Live BIS Discovery if local results are insufficient
-  // Trigger if no primary standards found OR highest local score is below 0.65
-  let liveBisUsed = false;
-  let bisStatus = "not_needed";
-  let bisReason = null;
-  let bisCandidatesFound = 0;
-  const tBis0 = Date.now();
-
-  const topLocalScore = primaryStandards.length > 0 ? primaryStandards[0].score : 0.0;
-  const localResultsInsufficient = (primaryStandards.length === 0 || topLocalScore < 0.65);
-
-  const candidateBisQueries = requirement.bis_search_queries && requirement.bis_search_queries.length > 0
-    ? requirement.bis_search_queries
-    : [requirement.product];
-
-  if (localResultsInsufficient) {
-    if (!enableBisDiscovery) {
-      bisStatus = "unavailable";
-      bisReason = "bis_discovery_disabled";
-    } else {
-      const bisHealth = await getBisHealth();
-
-      if (bisHealth.status === "available") {
-        try {
-          // Pass the expanded queries list with bounded timeout of 8000ms
-          const liveCandidates = await scrapeBisKeyword(candidateBisQueries, 15, 8000);
-          bisCandidatesFound = liveCandidates.length;
-
-          if (liveCandidates.length > 0) {
-            for (const c of liveCandidates) {
-              const key = (c.is_number || "").toUpperCase();
-              if (seenIS.has(key)) continue;
-              seenIS.add(key);
-
-              // STRICT SCORING ON LIVE BIS CANDIDATES
-              const details = scoreStandard(c, requirement);
-              if (details.score < 0.35) continue;
-
-              const v = determineVerificationStatus(c);
-              const cls = localClassify(c, requirement, details);
-              if (cls.classification === "UNRELATED") continue;
-
-              const expl = generateEvidenceBasedExplanation(c, requirement, cls.classification, details.score, details);
-              const formatted = formatStandard(c, requirement, cls.classification, details.score, expl, v);
-
-              if (cls.classification === "DIRECT_PRODUCT" && details.score >= 0.65) {
-                primaryStandards.push(formatted);
-              } else if (cls.classification === "TEST_METHOD" && details.score >= 0.40) {
-                alliedStandards.test_methods.push(formatted);
-              } else if (cls.classification === "SAFETY" && details.score >= 0.40) {
-                alliedStandards.safety.push(formatted);
-              } else if (details.score >= 0.40) {
-                alliedStandards.related_products.push(formatted);
-              }
-            }
-
-            primaryStandards.sort((a, b) => b.score - a.score);
-            liveBisUsed = primaryStandards.some(s => s.verification_source === "official_bis_live");
-            bisStatus = liveCandidates.length > 0 ? "success" : "searched_no_results";
-          } else {
-            bisStatus = "searched_no_results";
-          }
-        } catch (err) {
-          console.error("[BIS] timeout after 8000ms:", err.message);
-          bisStatus = "error";
-          bisReason = "bis_discovery_failed";
-        }
-      } else {
-        bisStatus = "unavailable";
-        bisReason = bisHealth.reason || "playwright_browser_missing";
-      }
-    }
-  }
+  console.log(`[BIS] validated=${bisValidatedCount}`);
+  console.log(`[Ranking] accepted=${acceptedCount}`);
+  console.log(`[Ranking] rejected=${rejectedCount}`);
 
   const relatedCount = Object.values(alliedStandards).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
   console.log(`[Rank] primary=${primaryStandards.length}`);
   console.log(`[Rank] related=${relatedCount}`);
   console.log(`[Search] completed in ${Date.now() - t0}ms`);
 
-  const tBis = Date.now() - tBis0;
+  const tBis = Date.now() - tRet;
   const tRank = Date.now() - tRank0;
   const tTotal = Date.now() - t0;
+
+  const diagnostics = {
+    local_candidates: localCandidateCount,
+    mongo_candidates: mongoCandidateCount,
+    bis_candidates: bisCandidateCount,
+    bis_validated: bisValidatedCount,
+    final_results: primaryStandards.length + relatedCount
+  };
 
   // Stages feedback for UI / diagnostics
   const stages = [
@@ -504,11 +543,12 @@ export async function runFastAnalysis(query, inputType = "product_description", 
         bisStatus: "unavailable",
         bis_reason: bisReason,
         bisQueries: candidateBisQueries,
-        bisCandidatesFound,
+        bisCandidatesFound: bisCandidateCount,
         live_bis_used: false,
         live_bis_attempted: true,
         message: `No high-confidence Indian Standard found for '${requirement.product}' in the currently available verified sources, and live BIS verification is unavailable.`,
         stages,
+        diagnostics,
         timings: {
           requirement_parsing_ms: tReq,
           retrieval_ms: tRet,
@@ -522,7 +562,7 @@ export async function runFastAnalysis(query, inputType = "product_description", 
           live_bis_attempted: true,
           bis_status: "unavailable",
           bis_queries: candidateBisQueries,
-          bis_candidates_found: bisCandidatesFound,
+          bis_candidates_found: bisCandidateCount,
           mongo_cache_used: mongoUsed,
           local_index_used: true
         }
@@ -536,11 +576,12 @@ export async function runFastAnalysis(query, inputType = "product_description", 
       allied_standards: alliedStandards,
       bisStatus: bisStatus,
       bisQueries: candidateBisQueries,
-      bisCandidatesFound,
+      bisCandidatesFound: bisCandidateCount,
       live_bis_used: liveBisUsed,
       live_bis_attempted: true,
       message: `No high-confidence Indian Standard found for '${requirement.product}' in the currently available verified sources.`,
       stages,
+      diagnostics,
       timings: {
         requirement_parsing_ms: tReq,
         retrieval_ms: tRet,
@@ -554,7 +595,7 @@ export async function runFastAnalysis(query, inputType = "product_description", 
         live_bis_attempted: true,
         bis_status: bisStatus,
         bis_queries: candidateBisQueries,
-        bis_candidates_found: bisCandidatesFound,
+        bis_candidates_found: bisCandidateCount,
         mongo_cache_used: mongoUsed,
         local_index_used: true
       }
@@ -568,10 +609,11 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     allied_standards: alliedStandards,
     bisStatus: bisStatus,
     bisQueries: candidateBisQueries,
-    bisCandidatesFound,
+    bisCandidatesFound: bisCandidateCount,
     live_bis_used: liveBisUsed,
-    live_bis_attempted: localResultsInsufficient,
+    live_bis_attempted: true,
     stages,
+    diagnostics,
     timings: {
       requirement_parsing_ms: tReq,
       retrieval_ms: tRet,
@@ -582,10 +624,10 @@ export async function runFastAnalysis(query, inputType = "product_description", 
     warnings: [],
     run_meta: {
       live_bis_used: liveBisUsed,
-      live_bis_attempted: localResultsInsufficient,
+      live_bis_attempted: true,
       bis_status: bisStatus,
       bis_queries: candidateBisQueries,
-      bis_candidates_found: bisCandidatesFound,
+      bis_candidates_found: bisCandidateCount,
       mongo_cache_used: mongoUsed,
       local_index_used: true
     }

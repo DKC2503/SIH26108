@@ -122,7 +122,22 @@ export const PRODUCT_ALIASES = [
   [/\baggregate\b/i, "aggregate", "aggregate"],
   [/\bpaint\b/i, "paint", "paint"],
   [/\badhesive\b/i, "adhesive", "adhesive"],
-  [/\bglass\b/i, "glass", "glass"]
+  [/\bglass\b/i, "glass", "glass"],
+  [/\b(?:ceramic\s+)?tiles?\b/i, "tiles", "ceramic_tile"],
+  [/\bsteel\s+(?:pipes?|tubes?)\b/i, "steel pipe", "steel_pipe"],
+
+  // Batteries & Electrical
+  [/\b(?:storage\s+)?batter(?:y|ies)\b/i, "battery", "storage_battery"],
+  [/\belectric(?:al)?\s+cables?\b/i, "electrical cable", "electrical_cable"],
+
+  // Additional Food & Agri
+  [/\brice(?:\s+grains?)?\b/i, "rice", "rice_grain"],
+  [/\bbun(?:s)?\b/i, "bun", "bakery_products"],
+  [/\bmilk\b/i, "milk", "dairy_products"],
+
+  // Commodities & General
+  [/\b(?:writing\s+)?paper\b/i, "paper", "paper_product"],
+  [/\bfurniture\b/i, "furniture", "furniture"]
 ];
 
 const PURPOSE_PATTERNS = [
@@ -234,19 +249,53 @@ export function parseRequirementLocal(query) {
   const addQuery = (term) => {
     if (!term || typeof term !== 'string') return;
     const clean = term.trim().toLowerCase();
-    if (clean.length >= 3 && !bisQueries.includes(clean)) {
+    if (clean.length >= 2 && !bisQueries.includes(clean)) {
       bisQueries.push(clean);
     }
   };
 
-  addQuery(product);
+  // Original query and raw cleaned query ALWAYS first priority
+  addQuery(qLower);
+  if (product && product !== qLower) addQuery(product);
+
+  // Automatic plural / singular expansion
+  if (product && !isNumberQuery) {
+    if (product.endsWith('ies')) {
+      addQuery(product.slice(0, -3) + 'y');
+    } else if (product.endsWith('y') && !product.endsWith('ey')) {
+      addQuery(product.slice(0, -1) + 'ies');
+    } else if (product.endsWith('s') && !product.endsWith('ss')) {
+      addQuery(product.slice(0, -1));
+    } else {
+      addQuery(product + 's');
+    }
+  }
+
   if (productType && productType !== "unknown" && productType !== "general" && productType !== product && productType !== "is_standard") {
     addQuery(productType.replace(/_/g, " "));
   }
-  // If product is a specific food item like bread, add domain query
-  if (product === "bread") {
+
+  // Domain variants for specific products
+  if (product === "battery" || product === "batteries") {
+    addQuery("storage battery");
+    addQuery("secondary battery");
+  } else if (product === "bread") {
     addQuery("bread products");
+    addQuery("white bread");
     addQuery("bakery products");
+  } else if (product === "bun" || product === "buns") {
+    addQuery("bakery products");
+    addQuery("bread");
+  } else if (product === "wheat") {
+    addQuery("wheat grain");
+    addQuery("food grains");
+  } else if (product === "rice") {
+    addQuery("paddy");
+    addQuery("food grains");
+  } else if (product.includes("fire extinguisher")) {
+    addQuery("portable fire extinguisher");
+  } else if (product.includes("cable")) {
+    addQuery("electric cables");
   } else if (product.includes("rebar") || product.includes("steel bar")) {
     addQuery("reinforcement bars");
     addQuery("high strength deformed steel bars");

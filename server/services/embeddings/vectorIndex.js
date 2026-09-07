@@ -48,16 +48,53 @@ export function extractProductWords(text) {
 }
 
 /**
+ * Build flexible word regex pattern supporting plurals, singulars, and common variants.
+ */
+export function buildWordPattern(w) {
+  if (!w || typeof w !== 'string') return "";
+  const clean = w.toLowerCase().trim();
+  if (clean.length <= 2) return clean;
+
+  if (clean === "electric" || clean === "electrical") {
+    return "(?:electric|electrical)";
+  }
+  if (clean === "steel" || clean === "steels") {
+    return "(?:steel|steels)";
+  }
+
+  // Plural / singular variations
+  if (clean.endsWith('ies')) {
+    const base = clean.slice(0, -3);
+    return `(?:${clean}|${base}y)`;
+  }
+  if (clean.endsWith('y') && clean.length >= 3) {
+    const base = clean.slice(0, -1);
+    return `(?:${clean}|${base}ies|${clean}s)`;
+  }
+  if (clean.endsWith('es') && clean.length >= 4) {
+    return `(?:${clean}|${clean.slice(0, -2)}|${clean.slice(0, -1)})`;
+  }
+  if (clean.endsWith('s') && !clean.endsWith('ss') && clean.length >= 3) {
+    return `(?:${clean}|${clean.slice(0, -1)})`;
+  }
+  return `(?:${clean}|${clean}s|${clean}es)`;
+}
+
+/**
  * Strict plural/stem word matcher.
  * Never matches random substrings or short prefixes.
  */
-function wordsMatch(w1, w2) {
+export function wordsMatch(w1, w2) {
   if (w1 === w2) return true;
+  if (!w1 || !w2) return false;
+  if ((w1 === "electric" && w2 === "electrical") || (w1 === "electrical" && w2 === "electric")) return true;
   if (w1.length >= 3 && w2.length >= 3) {
     if (w1 + "s" === w2 || w2 + "s" === w1) return true;
     if (w1 + "es" === w2 || w2 + "es" === w1) return true;
     if (w1.endsWith("ies") && w1.slice(0, -3) + "y" === w2) return true;
     if (w2.endsWith("ies") && w2.slice(0, -3) + "y" === w1) return true;
+    if (w1.endsWith("s") && !w1.endsWith("ss") && w1.slice(0, -1) === w2) return true;
+    if (w2.endsWith("s") && !w2.endsWith("ss") && w2.slice(0, -1) === w1) return true;
   }
   return false;
 }
@@ -119,20 +156,39 @@ export function calculateWordOverlap(productWords, targetText) {
 
 /**
  * Exact word-boundary phrase matcher.
- * Prevents "reinforcement" matching "cement", and "water bottled" matching "water bottle".
+ * Uses flexible word patterns (singular/plural, variants) and sequential token matching.
  */
 export function matchesPhrase(targetText, phrase) {
   if (!targetText || !phrase) return false;
   const arr = Array.isArray(targetText) ? targetText : [targetText];
   const pWords = normalize(phrase).split(/\s+/).filter(Boolean);
   if (pWords.length === 0) return false;
-  const pPattern = pWords.map(w => w.length >= 3 ? `${w}(?:s|es)?` : w).join('\\s+');
+
+  const pPattern = pWords.map(buildWordPattern).join('\\s+');
   const rx = new RegExp(`\\b${pPattern}\\b`, 'i');
-  return arr.some(t => rx.test(normalize(t)));
+  if (arr.some(t => rx.test(normalize(t)))) return true;
+
+  // Also check token-by-token sequential match
+  for (const text of arr) {
+    const tWords = normalize(text).split(/\s+/).filter(Boolean);
+    if (tWords.length < pWords.length) continue;
+    for (let i = 0; i <= tWords.length - pWords.length; i++) {
+      let match = true;
+      for (let j = 0; j < pWords.length; j++) {
+        if (!wordsMatch(pWords[j], tWords[i + j])) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return true;
+    }
+  }
+
+  return false;
 }
 
 /**
- * Phrase match score
+ * Phrase match score with heavy title weighting for general product search
  */
 export function calculatePhraseScore(product, std) {
   if (!product) return 0.0;
@@ -144,7 +200,7 @@ export function calculatePhraseScore(product, std) {
 
   // Check if all product words appear in title
   const pWords = extractProductWords(product);
-  if (pWords.length > 1) {
+  if (pWords.length >= 1) {
     const titleWords = normalize(std.title || "").split(/\s+/);
     let allFound = true;
     for (const pw of pWords) {
@@ -153,7 +209,9 @@ export function calculatePhraseScore(product, std) {
         break;
       }
     }
-    if (allFound) return 0.85;
+    if (allFound) {
+      return pWords.length === 1 ? 0.95 : 0.85;
+    }
   }
 
   return 0.0;
@@ -233,10 +291,22 @@ export function scoreStandard(std, requirement) {
   }
 
   // 2. Keyword & Title overlap
-  const titleOverlap = calculateWordOverlap(pWords, std.title || "");
+  const titleOverlap = calculateWordOverlap(pWords, std.title || std.standard_name || "");
   const kwOverlap = calculateWordOverlap(pWords, Array.isArray(std.product_keywords) ? std.product_keywords.join(" ") : "");
   const scopeOverlap = calculateWordOverlap(pWords, std.scope || "");
-  const textOverlap = (0.50 * titleOverlap) + (0.35 * kwOverlap) + (0.15 * scopeOverlap);
+  
+  const hasKw = Array.isArray(std.product_keywords) && std.product_keywords.length > 0;
+  const hasScope = Boolean(std.scope && std.scope.length > 10);
+  let textOverlap = 0.0;
+  if (hasKw && hasScope) {
+    textOverlap = (0.50 * titleOverlap) + (0.35 * kwOverlap) + (0.15 * scopeOverlap);
+  } else if (hasKw) {
+    textOverlap = (0.65 * titleOverlap) + (0.35 * kwOverlap);
+  } else if (hasScope) {
+    textOverlap = (0.75 * titleOverlap) + (0.25 * scopeOverlap);
+  } else {
+    textOverlap = titleOverlap;
+  }
 
   // If zero product words match anywhere in title or keywords, this standard is NOT relevant
   if (titleOverlap === 0 && kwOverlap === 0 && phrase === 0) {
@@ -263,7 +333,7 @@ export function scoreStandard(std, requirement) {
 
   // 5. Test method vs Product Specification penalty
   // A test method standard should NOT score higher than a product specification for the same product
-  const titleLower = (std.title || "").toLowerCase();
+  const titleLower = (std.title || std.standard_name || "").toLowerCase();
   const isTestMethod = titleLower.includes("methods of test") ||
     titleLower.includes("method of test") ||
     titleLower.includes("determination of") ||
@@ -280,7 +350,7 @@ export function scoreStandard(std, requirement) {
 
   // If title has direct product match and is a product specification, boost score
   if (phrase >= 0.85 && !isTestMethod) {
-    finalScore = Math.max(finalScore, 0.85);
+    finalScore = Math.max(finalScore, 0.88);
   } else if (phrase >= 0.85 && isTestMethod) {
     finalScore = Math.min(finalScore, 0.72); // Cap test method score below primary product specification
   }
