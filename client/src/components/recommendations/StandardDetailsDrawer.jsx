@@ -4,14 +4,13 @@ import {
   ExternalLink, 
   ShieldCheck, 
   FileText, 
-  CheckCircle, 
   Layers, 
   BookOpen, 
   History,
-  Building,
-  Calendar,
-  AlertCircle
+  FlaskConical
 } from 'lucide-react';
+import { useI18n } from '../../i18n/I18nContext';
+import BisSourceBadge from './BisSourceBadge';
 
 export default function StandardDetailsDrawer({ 
   standard, 
@@ -20,6 +19,7 @@ export default function StandardDetailsDrawer({
 }) {
   if (!standard) return null;
 
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('basic');
 
   const isNumber = standard.is_number || "IS Standard";
@@ -27,6 +27,9 @@ export default function StandardDetailsDrawer({
   const status = standard.bis_status || standard.status || "Active";
   const isCurrent = status.toLowerCase() === 'active' || status.toLowerCase() === 'current';
   const isBisLive = standard.verification_source === 'official_bis_live' || standard.data_source === 'BIS_LIVE';
+  const isLocalVerified = standard.verification_source === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE';
+  const isMongoCached = standard.verification_source === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE';
+
   const officialBisUrl = standard.official_bis_url || (standard.detail_url && standard.detail_url.includes('/standard-details') ? standard.detail_url : null);
   const cert = standard.certification;
   const lifecycle = standard.lifecycle || {};
@@ -43,11 +46,12 @@ export default function StandardDetailsDrawer({
   };
 
   const tabs = [
-    { id: 'basic', label: 'Basic Details', icon: FileText },
-    { id: 'classification', label: 'Classification', icon: Layers },
-    { id: 'certification', label: 'Certification', icon: ShieldCheck },
-    { id: 'lifecycle', label: 'Lifecycle & Amendments', icon: History },
-    { id: 'referred', label: 'Referred Standards', icon: BookOpen },
+    { id: 'basic', label: t('tabBasic'), icon: FileText },
+    { id: 'technical', label: t('tabTechnical'), icon: FlaskConical },
+    { id: 'classification', label: t('tabClassification'), icon: Layers },
+    { id: 'certification', label: t('tabCertification'), icon: ShieldCheck },
+    { id: 'lifecycle', label: t('tabLifecycle'), icon: History },
+    { id: 'referred', label: t('tabReferred'), icon: BookOpen },
   ];
 
   const renderField = (label, value) => {
@@ -65,7 +69,7 @@ export default function StandardDetailsDrawer({
           {label}
         </div>
         <div style={{ fontSize: '13.5px', color: value ? 'var(--text-main)' : 'var(--text-light)', fontWeight: value ? 500 : 400 }}>
-          {value || "Not available on BIS portal"}
+          {value || t('notAvailableFromBis')}
         </div>
       </div>
     );
@@ -101,19 +105,19 @@ export default function StandardDetailsDrawer({
                 </span>
 
                 {isCurrent ? (
-                  <span className="badge badge-verified">CURRENT</span>
+                  <span className="badge badge-verified">{t('currentBadge').toUpperCase()}</span>
                 ) : (
                   <span className="badge badge-warning">{status.toUpperCase()}</span>
                 )}
 
                 {isBisLive ? (
-                  <span className="badge badge-gold">LIVE BIS VERIFIED</span>
-                ) : (standard.verification_source === 'official_bis_cache' || standard.data_source === 'LOCAL_KNOWLEDGE_BASE') ? (
-                  <span className="badge badge-verified">LOCAL VERIFIED INDEX</span>
-                ) : (standard.verification_source === 'mongodb_cache' || standard.data_source === 'MONGODB_CACHE') ? (
-                  <span className="badge badge-blue">MONGODB CACHED</span>
+                  <span className="badge badge-gold">{t('liveBisVerified').toUpperCase()}</span>
+                ) : isLocalVerified ? (
+                  <span className="badge badge-verified">{t('localVerifiedIndex').toUpperCase()}</span>
+                ) : isMongoCached ? (
+                  <span className="badge badge-blue">{t('mongoCached').toUpperCase()}</span>
                 ) : (
-                  <span className="badge badge-warning">UNVERIFIED</span>
+                  <span className="badge badge-warning">{t('unverified').toUpperCase()}</span>
                 )}
               </div>
 
@@ -147,13 +151,13 @@ export default function StandardDetailsDrawer({
             borderBottom: '1px solid var(--border-subtle)',
             paddingBottom: '2px'
           }}>
-            {tabs.map(t => {
-              const Icon = t.icon;
-              const isActive = activeTab === t.id;
+            {tabs.map(tTab => {
+              const Icon = tTab.icon;
+              const isActive = activeTab === tTab.id;
               return (
                 <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
+                  key={tTab.id}
+                  onClick={() => setActiveTab(tTab.id)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -167,7 +171,7 @@ export default function StandardDetailsDrawer({
                   }}
                 >
                   <Icon size={14} />
-                  <span>{t.label}</span>
+                  <span>{tTab.label}</span>
                 </button>
               );
             })}
@@ -187,7 +191,7 @@ export default function StandardDetailsDrawer({
                   borderRadius: '6px'
                 }}>
                   <div style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                    Scope & Technical Description
+                    {t('scopeTechnicalDesc')}
                   </div>
                   <p style={{ fontSize: '13.5px', color: 'var(--text-main)', lineHeight: 1.6 }}>
                     {standard.scope}
@@ -208,7 +212,66 @@ export default function StandardDetailsDrawer({
             </div>
           )}
 
-          {/* TAB 2: CLASSIFICATION */}
+          {/* TAB 2: TECHNICAL CONTENT (Safety, Test Methods, Material) */}
+          {activeTab === 'technical' && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Safety Requirements */}
+              <div style={{
+                padding: '16px',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  {t('safetyRequirements')}
+                </div>
+                {Array.isArray(standard.safety_standards) && standard.safety_standards.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {standard.safety_standards.map((saf, i) => (
+                      <span key={i} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '4px 10px', borderRadius: '4px', fontSize: '13px' }}>
+                        {typeof saf === 'object' ? (saf.is_number || saf.title) : saf}
+                      </span>
+                    ))}
+                  </div>
+                ) : standard.scope && /safety|protection|ingress|hazard|flame|shock/i.test(standard.scope) ? (
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {standard.scope}
+                  </p>
+                ) : (
+                  <span style={{ fontSize: '13px', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                    {t('notAvailableFromBis')}
+                  </span>
+                )}
+              </div>
+
+              {/* Test Measurements & Methods */}
+              <div style={{
+                padding: '16px',
+                background: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  {t('testMeasurementsMethods')}
+                </div>
+                {Array.isArray(standard.test_methods) && standard.test_methods.length > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {standard.test_methods.map((tm, i) => (
+                      <span key={i} className="is-code" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '4px 10px', borderRadius: '4px', fontSize: '12.5px' }}>
+                        {typeof tm === 'object' ? (tm.is_number || tm.title) : tm}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '13px', color: 'var(--text-light)', fontStyle: 'italic' }}>
+                    {t('notAvailableFromBis')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: CLASSIFICATION */}
           {activeTab === 'classification' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
@@ -222,7 +285,7 @@ export default function StandardDetailsDrawer({
             </div>
           )}
 
-          {/* TAB 3: CERTIFICATION */}
+          {/* TAB 4: CERTIFICATION */}
           {activeTab === 'certification' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{
@@ -232,16 +295,16 @@ export default function StandardDetailsDrawer({
                 borderRadius: '6px'
               }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                  Official Conformity Assessment & Certification
+                  {t('officialConformity')}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)' }}>
-                    {cert?.status ? cert.status : "Not available on BIS portal"}
+                    {cert?.status ? cert.status : t('notAvailableFromBis')}
                   </span>
                   {cert?.mandatory !== null && cert?.mandatory !== undefined && (
                     <span className={`badge ${cert.mandatory ? 'badge-gold' : 'badge-neutral'}`}>
-                      {cert.mandatory ? 'MANDATORY (QCO / STATUTORY)' : 'VOLUNTARY'}
+                      {cert.mandatory ? t('mandatoryQco').toUpperCase() : t('voluntary').toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -253,7 +316,7 @@ export default function StandardDetailsDrawer({
             </div>
           )}
 
-          {/* TAB 4: LIFECYCLE & AMENDMENTS */}
+          {/* TAB 5: LIFECYCLE & AMENDMENTS */}
           {activeTab === 'lifecycle' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
@@ -273,7 +336,7 @@ export default function StandardDetailsDrawer({
                   borderRadius: '6px'
                 }}>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                    Gazette Amendments & Addenda
+                    {t('gazetteAmendments')}
                   </div>
                   <ul style={{ paddingLeft: '18px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     {standard.amendments.map((am, i) => (
@@ -285,7 +348,7 @@ export default function StandardDetailsDrawer({
             </div>
           )}
 
-          {/* TAB 5: REFERRED STANDARDS */}
+          {/* TAB 6: REFERRED STANDARDS */}
           {activeTab === 'referred' && (
             <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{
@@ -295,7 +358,7 @@ export default function StandardDetailsDrawer({
                 borderRadius: '6px'
               }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
-                  Normative References & Allied Standards
+                  {t('normativeReferences')}
                 </div>
                 {standard.normative_references?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -339,12 +402,12 @@ export default function StandardDetailsDrawer({
                   </div>
                 ) : (
                   <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>
-                    Not available on BIS portal
+                    {t('notAvailableFromBis')}
                   </div>
                 )}
               </div>
 
-              {/* Direct BIS Portal Reference Links (Extracted from Live Page) */}
+              {/* Direct BIS Portal Reference Links */}
               {verifiedLinks.length > 0 && (
                 <div style={{
                   padding: '16px',
@@ -353,7 +416,7 @@ export default function StandardDetailsDrawer({
                   borderRadius: '6px'
                 }}>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
-                    Verified Referenced Standards on BIS Portal ({verifiedLinks.length})
+                    {t('verifiedReferencedOnBis')} ({verifiedLinks.length})
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {verifiedLinks.map((item, idx) => (
@@ -393,62 +456,6 @@ export default function StandardDetailsDrawer({
                   </div>
                 </div>
               )}
-
-              <div style={{
-                padding: '16px',
-                background: '#FFFFFF',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '6px'
-              }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>
-                  Sampling & Test Method Standards
-                </div>
-                {standard.test_methods?.length > 0 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {standard.test_methods.map((ref, idx) => {
-                      const verifiedUrl = findVerifiedBisUrl(ref);
-                      return (
-                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', background: '#FFFFFF', border: '1px solid var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <button
-                            type="button"
-                            onClick={() => onSelectStandard && onSelectStandard(ref)}
-                            className="btn btn-secondary btn-sm is-code"
-                            style={{ border: 'none', borderRadius: 0, padding: '4px 8px' }}
-                            title="Search this standard in ISRA"
-                          >
-                            <span>{ref}</span>
-                          </button>
-                          {verifiedUrl && (
-                            <a
-                              href={verifiedUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                padding: '4px 8px',
-                                background: '#EFF6FF',
-                                borderLeft: '1px solid var(--border-subtle)',
-                                color: 'var(--primary-blue)',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                textDecoration: 'none'
-                              }}
-                              title="Open on official BIS portal"
-                            >
-                              <span>BIS ↗</span>
-                            </a>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '13px', color: 'var(--text-light)' }}>
-                    Not available on BIS portal
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
@@ -466,23 +473,19 @@ export default function StandardDetailsDrawer({
             onClick={onClose}
             className="btn btn-secondary btn-sm"
           >
-            Close
+            {t('close')}
           </button>
 
           {officialBisUrl ? (
-            <a
-              href={officialBisUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-              style={{ padding: '9px 20px', fontWeight: 600 }}
-            >
-              <span>Open official BIS page</span>
-              <ExternalLink size={15} />
-            </a>
+            <BisSourceBadge
+              verified={isBisLive || isLocalVerified}
+              url={officialBisUrl}
+              customLabel={t('openBisPage')}
+              style={{ padding: '8px 18px', fontSize: '13px' }}
+            />
           ) : (
             <span style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              Official BIS detail page unavailable
+              {t('notAvailableFromBis')}
             </span>
           )}
         </div>

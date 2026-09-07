@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/layout/Header';
 import Recommendations from './pages/Recommendations';
-import SystemStatusModal from './components/status/SystemStatusModal';
 import StandardsCompareModal from './components/compare/StandardsCompareModal';
 import { checkSystemHealth, analyzeRequirement, analyzeTenderDocument } from './services/api';
+import { I18nProvider, useI18n } from './i18n/I18nContext';
 
-export default function App() {
+function IsraApp() {
+  const { t } = useI18n();
   const [systemStatus, setSystemStatus] = useState(null);
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   // Recommendations / Search state
@@ -17,6 +17,7 @@ export default function App() {
   const [activeStandard, setActiveStandard] = useState(null);
   const [comparedStandards, setComparedStandards] = useState([]);
   const [savedStandards, setSavedStandards] = useState([]);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   // Hidden global file input for header "+ Add document" button
   const headerFileInputRef = useRef(null);
@@ -32,8 +33,6 @@ export default function App() {
     const data = await checkSystemHealth();
     setSystemStatus(data);
   };
-
-  const [errorMessage, setErrorMessage] = useState(null);
 
   const handleAnalyze = async (query, inputType = 'product_description', enableBis = true) => {
     setIsLoading(true);
@@ -58,7 +57,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Search execution error:", err);
-      setErrorMessage(err.message || "Failed to retrieve standards from BIS.");
+      setErrorMessage(err.message || t('errorService'));
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +90,6 @@ export default function App() {
         return prev.filter(s => s.is_number !== standard.is_number);
       }
       if (prev.length >= 4) {
-        alert("You can compare up to 4 standards simultaneously.");
         return prev;
       }
       return [...prev, standard];
@@ -127,8 +125,6 @@ export default function App() {
         onClear={handleClearAnalysis}
         hasResults={Boolean(analysisData && !isLoading)}
         isLoading={isLoading}
-        systemStatus={systemStatus}
-        onOpenStatusModal={() => setIsStatusOpen(true)}
         onUploadClick={handleHeaderUploadClick}
       />
 
@@ -163,7 +159,7 @@ export default function App() {
         color: 'var(--text-muted)'
       }}>
         <div>
-          <span>ISRA • Indian Standards Retrieval Architecture</span>
+          <span>{t('footerText')}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {comparedStandards.length > 0 && (
@@ -171,7 +167,7 @@ export default function App() {
               onClick={() => setIsCompareOpen(true)}
               style={{ color: 'var(--primary-blue)', fontWeight: 600 }}
             >
-              Compare Standards ({comparedStandards.length})
+              {t('compareStandards')} ({comparedStandards.length})
             </button>
           )}
           <a
@@ -180,18 +176,10 @@ export default function App() {
             rel="noopener noreferrer"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Official BIS Portal ↗
+            {t('officialPortal')}
           </a>
         </div>
       </footer>
-
-      {/* System Status Modal */}
-      <SystemStatusModal
-        isOpen={isStatusOpen}
-        onClose={() => setIsStatusOpen(false)}
-        status={systemStatus}
-        onRefresh={fetchHealth}
-      />
 
       {/* Standards Compare Modal */}
       <StandardsCompareModal
@@ -202,5 +190,13 @@ export default function App() {
         onViewDetails={(s) => { setIsCompareOpen(false); setActiveStandard(s); }}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <I18nProvider>
+      <IsraApp />
+    </I18nProvider>
   );
 }

@@ -5,15 +5,13 @@ import {
   Upload, 
   FileText, 
   Sparkles, 
-  Filter, 
   ArrowUpDown, 
-  Layers, 
-  CheckCircle2, 
   AlertCircle,
   FileCheck,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 import RecommendationCard from '../components/recommendations/RecommendationCard';
 import StandardDetailsDrawer from '../components/recommendations/StandardDetailsDrawer';
 
@@ -30,6 +28,7 @@ export default function Recommendations({
   savedStandards = [],
   onToggleSave
 }) {
+  const { t } = useI18n();
   const [searchInput, setSearchInput] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'primary', 'allied', 'verified'
@@ -52,7 +51,6 @@ export default function Recommendations({
   ];
 
   const totalResultsCount = primaryStandards.length + alliedStandards.length;
-  const hasResults = Boolean(analysisData && totalResultsCount > 0);
   const isZeroResults = Boolean(analysisData && totalResultsCount === 0 && !isLoading);
 
   // Filter logic
@@ -130,7 +128,7 @@ export default function Recommendations({
   ];
 
   // ============================================================
-  // VIEW 1: LOADING STATE
+  // VIEW 1: POLISHED SEARCH LOADING STATE
   // ============================================================
   if (isLoading) {
     return (
@@ -143,12 +141,17 @@ export default function Recommendations({
         padding: '40px 20px',
         textAlign: 'center'
       }}>
-        <div className="spinner-minimal" style={{ marginBottom: '20px' }} />
+        {/* Subtle Three Dots Pulsing Indicator */}
+        <div className="loading-dots">
+          <div className="loading-dot" />
+          <div className="loading-dot" />
+          <div className="loading-dot" />
+        </div>
         <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-          Searching BIS standards...
+          {t('loadingTitle')}
         </h2>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '440px' }}>
-          Querying Bureau of Indian Standards live portal (standards.bis.gov.in) and verified standards index.
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '460px', lineHeight: 1.5 }}>
+          {t('loadingDesc')}
         </p>
       </div>
     );
@@ -178,7 +181,7 @@ export default function Recommendations({
             lineHeight: 1,
             marginBottom: '10px'
           }}>
-            ISRA
+            {t('appName')}
           </h1>
           <p style={{ 
             fontSize: '15.5px', 
@@ -187,7 +190,7 @@ export default function Recommendations({
             margin: 0,
             letterSpacing: '-0.01em'
           }}>
-            Indian Standards Retrieval Architecture
+            {t('tagline')}
           </p>
         </div>
 
@@ -199,7 +202,7 @@ export default function Recommendations({
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search Indian Standards (e.g., LED street lighting, Portland cement, IS 10322)..."
+              placeholder={t('searchPlaceholder')}
               autoFocus
             />
             {searchInput && (
@@ -207,7 +210,7 @@ export default function Recommendations({
                 type="button"
                 onClick={() => setSearchInput('')}
                 style={{ padding: '4px', color: 'var(--text-muted)' }}
-                title="Clear query"
+                title={t('clearQuery')}
               >
                 <X size={16} />
               </button>
@@ -216,20 +219,20 @@ export default function Recommendations({
               type="submit"
               disabled={!searchInput.trim() && !selectedFile}
               className="btn btn-primary"
-              style={{ borderRadius: '20px', padding: '8px 20px' }}
+              style={{ borderRadius: '20px', padding: '8px 22px' }}
             >
-              Search
+              {t('search')}
             </button>
           </form>
         </div>
 
-        {/* Error Notification Banner */}
+        {/* Inline Error Notification Banner */}
         {errorMessage && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            padding: '10px 18px',
+            padding: '12px 18px',
             background: '#FEF2F2',
             border: '1px solid #FECACA',
             borderRadius: '8px',
@@ -237,10 +240,19 @@ export default function Recommendations({
             fontSize: '13px',
             color: '#B91C1C',
             maxWidth: '680px',
-            width: '100%'
+            width: '100%',
+            boxShadow: '0 1px 3px rgba(185, 28, 28, 0.05)'
           }}>
             <AlertCircle size={16} color="#DC2626" style={{ flexShrink: 0 }} />
             <span style={{ flex: 1 }}>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => onAnalyze(searchInput || 'LED street lighting', 'product_description', true)}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '3px 10px', fontSize: '11.5px', borderColor: '#FECACA' }}
+            >
+              {t('retry')}
+            </button>
           </div>
         )}
 
@@ -259,7 +271,7 @@ export default function Recommendations({
             color: 'var(--primary-blue)'
           }}>
             <FileText size={15} />
-            <span>Attached: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
+            <span>{t('attached')}: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
             <button
               type="button"
               onClick={clearSelectedFile}
@@ -274,7 +286,7 @@ export default function Recommendations({
               className="btn btn-primary btn-sm"
               style={{ marginLeft: '6px', borderRadius: '12px' }}
             >
-              Analyze Document →
+              {t('analyzeDocument')}
             </button>
           </div>
         )}
@@ -286,17 +298,18 @@ export default function Recommendations({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 14px',
+              padding: '7px 16px',
               borderRadius: '20px',
               background: '#FFFFFF',
-              border: '1px dashed #CBD5E1',
+              border: '1px solid var(--border-medium)',
               fontSize: '13px',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.18s ease',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)'
             }}>
               <Upload size={14} color="var(--primary-blue)" />
-              <span>+ Add document</span>
+              <span>{t('addDocument')}</span>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -311,7 +324,7 @@ export default function Recommendations({
         {/* Canonical Suggestions Chips */}
         <div style={{ textAlign: 'center', maxWidth: '680px' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
-            Try searching for
+            {t('trySearchingFor')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px' }}>
             {searchChips.map((chip, idx) => (
@@ -335,7 +348,7 @@ export default function Recommendations({
   // VIEW 3: SEARCH RESULTS PAGE
   // ============================================================
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 20px 60px 20px' }}>
+    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 20px 60px 20px' }} className="animate-fade-in">
       {/* Search Header Info Bar */}
       <div style={{
         display: 'flex',
@@ -349,42 +362,44 @@ export default function Recommendations({
       }}>
         <div>
           <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-            About {totalResultsCount} results {analysisData.timings?.total ? `(${analysisData.timings.total}s)` : ''}
+            {t('aboutResults', { count: totalResultsCount })} {analysisData.timings?.total ? `(${analysisData.timings.total}s)` : ''}
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
-            Indian Standards for "{requirement?.product || searchInput || 'Requirement'}"
+            {t('standardsFor', { query: requirement?.product || searchInput || 'Requirement' })}
           </h2>
         </div>
 
-        {/* Filter Pills */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
-          <button
-            onClick={() => setFilterType('all')}
-            className={`btn btn-sm ${filterType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            All ({totalResultsCount})
-          </button>
-          <button
-            onClick={() => setFilterType('primary')}
-            className={`btn btn-sm ${filterType === 'primary' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Primary ({primaryStandards.length})
-          </button>
-          <button
-            onClick={() => setFilterType('allied')}
-            className={`btn btn-sm ${filterType === 'allied' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            Allied ({alliedStandards.length})
-          </button>
-          <button
-            onClick={() => setFilterType('verified')}
-            className={`btn btn-sm ${filterType === 'verified' ? 'btn-primary' : 'btn-secondary'}`}
-          >
-            BIS Verified
-          </button>
+        {/* Segmented Filter Pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+          <div className="segmented-control">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`segmented-control-btn ${filterType === 'all' ? 'active' : ''}`}
+            >
+              {t('filterAll')} ({totalResultsCount})
+            </button>
+            <button
+              onClick={() => setFilterType('primary')}
+              className={`segmented-control-btn ${filterType === 'primary' ? 'active' : ''}`}
+            >
+              {t('filterPrimary')} ({primaryStandards.length})
+            </button>
+            <button
+              onClick={() => setFilterType('allied')}
+              className={`segmented-control-btn ${filterType === 'allied' ? 'active' : ''}`}
+            >
+              {t('filterAllied')} ({alliedStandards.length})
+            </button>
+            <button
+              onClick={() => setFilterType('verified')}
+              className={`segmented-control-btn ${filterType === 'verified' ? 'active' : ''}`}
+            >
+              {t('filterVerified')}
+            </button>
+          </div>
 
           {/* Sort Dropdown */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
             <ArrowUpDown size={12} />
             <select
               value={sortBy}
@@ -392,14 +407,15 @@ export default function Recommendations({
               style={{
                 background: '#FFFFFF',
                 border: '1px solid var(--border-subtle)',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 padding: '4px 8px',
                 fontSize: '12px',
-                color: 'var(--text-main)'
+                color: 'var(--text-main)',
+                cursor: 'pointer'
               }}
             >
-              <option value="relevance">Relevance</option>
-              <option value="is_number">IS Number</option>
+              <option value="relevance">{t('sortRelevance')}</option>
+              <option value="is_number">{t('sortIsNumber')}</option>
             </select>
           </div>
         </div>
@@ -408,28 +424,29 @@ export default function Recommendations({
       {/* Tender Requirement Extraction Box (if applicable) */}
       {(analysisData?.tender_analysis || (requirement && (requirement.technical_specs || requirement.parameters || requirement.scope))) && (
         <div style={{
-          background: '#F8FAFC',
+          background: '#FFFFFF',
           border: '1px solid var(--border-subtle)',
           borderRadius: '8px',
           padding: '14px 18px',
-          marginBottom: '20px'
+          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)'
         }}>
           <div 
             onClick={() => setShowTenderSummary(prev => !prev)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <FileCheck size={16} color="var(--primary-blue)" />
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
                 {analysisData?.tender_analysis?.document_name ? (
-                  <>Document Analysis: <strong>{analysisData.tender_analysis.document_name}</strong></>
+                  <>{t('documentAnalysis')}: <strong>{analysisData.tender_analysis.document_name}</strong></>
                 ) : (
-                  <>Extracted Requirement Profile: {requirement?.product || "Procurement Item"}</>
+                  <>{t('extractedReqProfile')}: {requirement?.product || "Procurement Item"}</>
                 )}
               </span>
               {analysisData?.tender_analysis?.compliance_risk && (
                 <span className={`badge ${analysisData.tender_analysis.compliance_risk === 'LOW_RISK' ? 'badge-verified' : 'badge-warning'}`} style={{ marginLeft: '6px' }}>
-                  {analysisData.tender_analysis.compliance_risk === 'LOW_RISK' ? 'COMPLIANCE LOW RISK' : 'ACTION REQUIRED'}
+                  {analysisData.tender_analysis.compliance_risk === 'LOW_RISK' ? t('complianceLowRisk') : t('actionRequired')}
                 </span>
               )}
             </div>
@@ -440,13 +457,13 @@ export default function Recommendations({
             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
               {requirement?.scope && (
                 <div style={{ marginBottom: '6px' }}>
-                  <strong>Scope:</strong> {requirement.scope}
+                  <strong>{t('scopeLabel')}:</strong> {requirement.scope}
                 </div>
               )}
               {requirement?.technical_specs && Object.keys(requirement.technical_specs).length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px', marginBottom: '8px' }}>
                   {Object.entries(requirement.technical_specs).map(([k, v], idx) => (
-                    <span key={idx} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: '4px' }}>
+                    <span key={idx} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: '4px' }}>
                       <strong>{k}:</strong> {String(v)}
                     </span>
                   ))}
@@ -474,14 +491,15 @@ export default function Recommendations({
           padding: '60px 20px',
           background: '#FFFFFF',
           border: '1px solid var(--border-subtle)',
-          borderRadius: '8px'
+          borderRadius: '10px',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)'
         }}>
           <AlertCircle size={36} color="var(--status-gold)" style={{ margin: '0 auto 12px auto' }} />
           <h3 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-            No Strong BIS Match Found
+            {t('noMatchTitle')}
           </h3>
           <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 16px auto', lineHeight: 1.5 }}>
-            No strong BIS match found for "{requirement?.product || searchInput}". Try searching with: a product name, an IS number, a technical description, or a material.
+            {t('noMatchDesc', { query: requirement?.product || searchInput })}
           </p>
           <button
             onClick={() => {
@@ -490,12 +508,12 @@ export default function Recommendations({
             }}
             className="btn btn-secondary btn-sm"
           >
-            Clear Search & Try Again
+            {t('clearSearch')}
           </button>
         </div>
       )}
 
-      {/* Results List */}
+      {/* Results List with Staggered Entrance Animations */}
       {totalResultsCount > 0 && (
         <div>
           {/* Primary Standards Section */}
@@ -512,7 +530,7 @@ export default function Recommendations({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                <span>Primary Specifications ({displayPrimary.length})</span>
+                <span>{t('primarySpecifications')} ({displayPrimary.length})</span>
               </div>
               {displayPrimary.map((std, idx) => (
                 <RecommendationCard
@@ -524,6 +542,7 @@ export default function Recommendations({
                   isCompared={comparedStandards.some(s => s.is_number === std.is_number)}
                   onSave={onToggleSave}
                   isSaved={savedStandards.some(s => s.is_number === std.is_number)}
+                  animationIndex={idx}
                 />
               ))}
             </div>
@@ -543,7 +562,7 @@ export default function Recommendations({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                <span>Allied & Test Method Standards ({displayAllied.length})</span>
+                <span>{t('alliedStandards')} ({displayAllied.length})</span>
               </div>
               {displayAllied.map((std, idx) => (
                 <RecommendationCard
@@ -555,6 +574,7 @@ export default function Recommendations({
                   isCompared={comparedStandards.some(s => s.is_number === std.is_number)}
                   onSave={onToggleSave}
                   isSaved={savedStandards.some(s => s.is_number === std.is_number)}
+                  animationIndex={displayPrimary.length + idx}
                 />
               ))}
             </div>

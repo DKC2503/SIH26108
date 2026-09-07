@@ -518,5 +518,51 @@
     "verification_source": "official_bis_cache",
     "data_source": "LOCAL_KNOWLEDGE_BASE",
     "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6ImhPazR6VzRHcDl5L0JrUE5lL0Z0OWc9PSIsInZhbHVlIjoiWDNIYm5KYXMxS3hLTU15M1N3aUhEZz09IiwibWFjIjoiYWFmMDA2NGZhNjUzOGE1Yjg0MWIxMTQyYTRjNzg0NGExNDY3MzZhYzUzMTY0NWVlNzBjNmNhMzAyYTk0MzM1YyIsInRhZyI6IiJ9&standardNumber=IS%2015683:2018"
+  },
+  {
+    "is_number": "IS 17423:2021",
+    "title": "Medical Textiles — Bio-Protective Coveralls — Specification",
+    "category": "Medical & Healthcare",
+    "sub_category": "Personal Protective Equipment",
+    "product_keywords": [
+      "medical textiles",
+      "coverall",
+      "coveralls",
+      "bio-protective coveralls",
+      "covid 19",
+      "ppe kit",
+      "protective coverall",
+      "biological protection"
+    ],
+    "scope": "Specifies requirements for bio-protective coveralls for healthcare workers and personnel providing biological protection against blood, body fluids, viruses, and infectious pathogens.",
+    "bis_status": "Active",
+    "department": "TXD — Textile Department",
+    "technical_committee": "TXD 36 — Technical Textiles for Medtech Applications",
+    "type_of_standard": "Product Specification",
+    "certification": {
+      "status": "Mandatory (QCO / Statutory)",
+      "mandatory": true
+    },
+    "normative_references": [
+      "IS 16546:2016",
+      "IS 1969:2018",
+      "IS 7016 (Part 8):2020",
+      "IS 391:2019"
+    ],
+    "test_methods": [
+      "IS 16546:2016",
+      "IS 1969:2018",
+      "IS 7016 (Part 8):2020"
+    ],
+    "safety_standards": [
+      "Blood Resistance (Synthetic Blood Penetration Resistance)",
+      "Viral Penetration Resistance (Bacteriophage Phi-X174)",
+      "Hydrostatic Resistance & Seam Integrity Protection"
+    ],
+    "amendments": [],
+    "official_bis_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjJWNHRLeFMyUDgvY0FyQytlN3QyWnc9PSIsInZhbHVlIjoiaDQ2R3RVajdKWG9yd3VTZnJHM3gwZz09IiwibWFjIjoiODU3YjY2YTBjYzFjZGIyMDQ2ZDdjY2UwMWJjZTA3Y2VhZjAxNDdhN2M5NmNjZTlhY2VkZGNmYmRlNjRjMTgxNiIsInRhZyI6IiJ9&standardNumber=IS%2017423:2021",
+    "verification_source": "official_bis_cache",
+    "data_source": "LOCAL_KNOWLEDGE_BASE",
+    "detail_url": "https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IjJWNHRLeFMyUDgvY0FyQytlN3QyWnc9PSIsInZhbHVlIjoiaDQ2R3RVajdKWG9yd3VTZnJHM3gwZz09IiwibWFjIjoiODU3YjY2YTBjYzFjZGIyMDQ2ZDdjY2UwMWJjZTA3Y2VhZjAxNDdhN2M5NmNjZTlhY2VkZGNmYmRlNjRjMTgxNiIsInRhZyI6IiJ9&standardNumber=IS%2017423:2021"
   }
 ]
