@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 import { runFastAnalysis, getJobStatus } from '../services/recommendation/recommendationEngine.js';
 import { isMongoConnected, getMongoStatus, getStandardsCollection } from '../services/mongodb/mongoClient.js';
 import { isGeminiAvailable, getGeminiStatus } from '../services/gemini/geminiClient.js';
@@ -89,48 +90,112 @@ const handleTenderUpload = async (req, res) => {
 
   const filename = (req.file.originalname || "document").toLowerCase();
   const sizeKb = (req.file.size / 1024).toFixed(1);
-  console.log(`[TENDER] Request received: filename='${filename}', size=${sizeKb} KB`);
+  const fileExt = filename.endsWith('.pdf') ? 'pdf' : (filename.endsWith('.docx') ? 'docx' : 'txt');
+  console.log(`[Tender] filename="${req.file.originalname}"`);
+  console.log(`[Tender] type=${fileExt}`);
+  console.log(`[Tender] extraction started`);
 
   try {
     let text = "";
+    let extractionMethod = "raw-text";
 
     if (filename.endsWith('.pdf')) {
+      extractionMethod = "pdf-text";
       const data = await pdfParse(req.file.buffer);
       text = data.text || "";
     } else if (filename.endsWith('.docx') || filename.endsWith('.doc')) {
-      text = extractTextFromDocxBuffer(req.file.buffer);
+      extractionMethod = "mammoth-docx";
+      try {
+        const resDocx = await mammoth.extractRawText({ buffer: req.file.buffer });
+        text = resDocx.value || "";
+      } catch (_) {
+        text = extractTextFromDocxBuffer(req.file.buffer);
+      }
     } else {
-      // Default to UTF-8 text (txt, csv, md, etc.)
-      text = req.file.buffer.toString('utf-8');
+      extractionMethod = "utf8-text";
+      text = req.file.buffer.toString('utf-8').replace(/\0/g, '').replace(/\r\n/g, '\n');
     }
 
-    if (!text || !text.trim()) {
+    console.log(`[Tender] extraction method=${extractionMethod}`);
+    console.log(`[Tender] extracted characters=${text.length}`);
+
+    if (!text || text.trim().length < 30) {
       return res.status(422).json({
-        error: "Could not extract readable text from the document. It may be scanned or image-based."
+        error: "Document appears to be scanned/image-based and contains no machine-readable text.",
+        detail: "Document extraction failed: No machine-readable text was detected."
       });
     }
-
-    console.log(`[TENDER] Extracted text length: ${text.length} characters`);
 
     // 1. Extract referenced IS standards from text
     const isMatches = text.match(/\bIS\s*\d+(?:\s*\(?\s*PART\s*[\d\w\s/-]+\s*\)?)?(?:\s*:\s*\d{4})?\b/gi) || [];
     const uniqueIS = [...new Set(isMatches.map(s => s.trim().toUpperCase().replace(/\s+/g, ' ')))];
 
-    // 2. Identify potential product / procurement scope from title or first lines
-    // First check file name
-    let candidateQuery = filename.replace(/\.(pdf|docx|doc|txt)$/i, '').replace(/^product\s+/i, '').trim();
+    // 2. Identify potential product / procurement scope from title, text, or filename
+    let candidateQuery = "";
 
-    // Look for product mention in first 1000 characters
-    const firstSlice = text.slice(0, 1500);
-    const scopeMatch = firstSlice.match(/(?:procurement of|supply of|specification for|schedule of requirements for|scope of work for)\s+([^\n\r.]+)/i);
+    // Check scope patterns in text
+    const scopeMatch = text.match(/(?:procurement of|supply of|purchase of|requirement for|specification for|schedule of requirements for|scope of work for|tender for)\s+([^\n\r,.;]{3,60})/i);
     if (scopeMatch && scopeMatch[1]) {
       candidateQuery = scopeMatch[1].trim();
-    } else if (uniqueIS.length > 0 && (!candidateQuery || candidateQuery.length < 3)) {
+    }
+
+    // Check standard product keywords in text if scope pattern didn't yield
+    if (!candidateQuery || candidateQuery.length < 3) {
+      const productKeywords = [
+        "led street light", "street light", "led luminaire", "led lamp",
+        "portland cement", "ordinary portland cement", "cement",
+        "high tensile rebar", "tmt bar", "steel bar", "deformed steel bar",
+        "safety helmet", "industrial safety helmet", "helmet",
+        "fire extinguisher", "portable fire extinguisher",
+        "electrical cable", "electric cable", "pvc cable",
+        "water bottle", "stainless steel bottle",
+        "hdpe pipe", "steel pipe", "pipe",
+        "battery", "storage battery", "batteries",
+        "bread", "bun", "bakery products",
+        "paint", "enamel paint", "varnish",
+        "ceramic tile", "tiles", "paper", "milk", "furniture"
+      ];
+      for (const kw of productKeywords) {
+        const regex = new RegExp(`\\b${kw}s?\\b`, 'i');
+        if (regex.test(text)) {
+          candidateQuery = kw;
+          break;
+        }
+      }
+    }
+
+    // Fallback to filename without extension
+    if (!candidateQuery) {
+      candidateQuery = filename.replace(/\.(pdf|docx|doc|txt)$/i, '').replace(/^product[\s_-]+/i, '').replace(/[_-]/g, ' ').trim();
+    }
+
+    // If still empty but IS number found in document, use first IS number
+    if ((!candidateQuery || candidateQuery.length < 3) && uniqueIS.length > 0) {
       candidateQuery = uniqueIS[0];
     }
 
+    // Extract technical parameters (Power, Rating, Voltage, Protection, Material)
+    const detectedParams = {};
+    const powerM = text.match(/\b(\d+(?:\.\d+)?\s*(?:W|kW|MW|watts?))\b/i);
+    if (powerM) detectedParams["Power"] = powerM[1];
+
+    const voltM = text.match(/\b(\d+(?:\.\d+)?\s*(?:V|kV|volts?))\b/i);
+    if (voltM) detectedParams["Voltage"] = voltM[1];
+
+    const ipM = text.match(/\b(IP\s*\d{2})\b/i);
+    if (ipM) detectedParams["Protection"] = ipM[1].toUpperCase().replace(/\s+/, '');
+
+    const gradeM = text.match(/\b(Fe\s*500[A-Z]?|Fe\s*550[A-Z]?|Grade\s*\d{2}|OPC\s*\d{2})\b/i);
+    if (gradeM) detectedParams["Grade"] = gradeM[1].toUpperCase();
+
     // 3. Run requirement and recommendation analysis
     const analysisResult = await runFastAnalysis(candidateQuery || "general procurement", "tender_document", true);
+    if (analysisResult.requirement) {
+      analysisResult.requirement.technical_specs = {
+        ...(analysisResult.requirement.technical_specs || {}),
+        ...detectedParams
+      };
+    }
 
     // 4. Build requirement-to-standard mapping and identify specification gaps
     const referencedStandardsList = uniqueIS.map(isNum => {
@@ -194,6 +259,12 @@ const handleTenderUpload = async (req, res) => {
       outdated_references: [],
       compliance_risk: referencedStandardsList.length > 0 ? "LOW_RISK" : "ACTION_REQUIRED"
     };
+
+    const totalRecs = (analysisResult.primary_standards || []).length + 
+      Object.values(analysisResult.allied_standards || {}).reduce((s, a) => s + (Array.isArray(a) ? a.length : 0), 0);
+
+    console.log(`[Tender] requirements=${tenderAnalysis.technical_requirements.length}`);
+    console.log(`[Tender] recommendations=${totalRecs}`);
 
     res.json({
       pages_extracted: 1,

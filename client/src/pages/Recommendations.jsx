@@ -20,6 +20,7 @@ import StandardDetailsDrawer from '../components/recommendations/StandardDetails
 export default function Recommendations({
   analysisData,
   isLoading,
+  errorMessage,
   onAnalyze,
   onClear,
   activeStandard,
@@ -222,6 +223,27 @@ export default function Recommendations({
           </form>
         </div>
 
+        {/* Error Notification Banner */}
+        {errorMessage && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 18px',
+            background: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '13px',
+            color: '#B91C1C',
+            maxWidth: '680px',
+            width: '100%'
+          }}>
+            <AlertCircle size={16} color="#DC2626" style={{ flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>{errorMessage}</span>
+          </div>
+        )}
+
         {/* Selected File Notice (if user attached a document) */}
         {selectedFile && (
           <div style={{
@@ -384,7 +406,7 @@ export default function Recommendations({
       </div>
 
       {/* Tender Requirement Extraction Box (if applicable) */}
-      {requirement && (requirement.technical_specs || requirement.parameters || requirement.scope) && (
+      {(analysisData?.tender_analysis || (requirement && (requirement.technical_specs || requirement.parameters || requirement.scope))) && (
         <div style={{
           background: '#F8FAFC',
           border: '1px solid var(--border-subtle)',
@@ -399,25 +421,44 @@ export default function Recommendations({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <FileCheck size={16} color="var(--primary-blue)" />
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>
-                Extracted Requirement Profile: {requirement.product || "Procurement Item"}
+                {analysisData?.tender_analysis?.document_name ? (
+                  <>Document Analysis: <strong>{analysisData.tender_analysis.document_name}</strong></>
+                ) : (
+                  <>Extracted Requirement Profile: {requirement?.product || "Procurement Item"}</>
+                )}
               </span>
+              {analysisData?.tender_analysis?.compliance_risk && (
+                <span className={`badge ${analysisData.tender_analysis.compliance_risk === 'LOW_RISK' ? 'badge-verified' : 'badge-warning'}`} style={{ marginLeft: '6px' }}>
+                  {analysisData.tender_analysis.compliance_risk === 'LOW_RISK' ? 'COMPLIANCE LOW RISK' : 'ACTION REQUIRED'}
+                </span>
+              )}
             </div>
             {showTenderSummary ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
           </div>
 
           {showTenderSummary && (
             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-              {requirement.scope && (
+              {requirement?.scope && (
                 <div style={{ marginBottom: '6px' }}>
                   <strong>Scope:</strong> {requirement.scope}
                 </div>
               )}
-              {requirement.technical_specs && Object.keys(requirement.technical_specs).length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+              {requirement?.technical_specs && Object.keys(requirement.technical_specs).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px', marginBottom: '8px' }}>
                   {Object.entries(requirement.technical_specs).map(([k, v], idx) => (
                     <span key={idx} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: '4px' }}>
                       <strong>{k}:</strong> {String(v)}
                     </span>
+                  ))}
+                </div>
+              )}
+              {analysisData?.tender_analysis?.potential_gaps?.length > 0 && (
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {analysisData.tender_analysis.potential_gaps.map((gap, gIdx) => (
+                    <div key={gIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#B45309', fontSize: '12px' }}>
+                      <AlertCircle size={13} color="#D97706" />
+                      <span>{gap.description}</span>
+                    </div>
                   ))}
                 </div>
               )}

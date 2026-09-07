@@ -156,7 +156,7 @@ export default function RecommendationCard({
         borderRadius: '6px',
         fontSize: '12px',
         color: 'var(--text-secondary)',
-        marginBottom: '14px'
+        marginBottom: '12px'
       }}>
         {year && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -187,6 +187,90 @@ export default function RecommendationCard({
 
         <div>
           <span>Certification: <strong style={{ color: certificationText.includes('Mandatory') ? '#B45309' : 'inherit' }}>{certificationText}</strong></span>
+        </div>
+      </div>
+
+      {/* Technical Requirements: Safety & Test Methods */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '10px',
+        marginBottom: '14px'
+      }}>
+        {/* Safety Requirements */}
+        <div style={{
+          padding: '10px 12px',
+          background: '#F8FAFC',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '6px',
+          fontSize: '12px'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            marginBottom: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}>
+            <span>Safety Requirements</span>
+          </div>
+          {Array.isArray(standard.safety_standards) && standard.safety_standards.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {standard.safety_standards.map((saf, i) => (
+                <span key={i} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 500 }}>
+                  {typeof saf === 'object' ? (saf.is_number || saf.title) : saf}
+                </span>
+              ))}
+            </div>
+          ) : standard.scope && /safety|protection|ingress|hazard|flame|shock/i.test(standard.scope) ? (
+            <span style={{ color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
+              {standard.scope.length > 120 ? standard.scope.slice(0, 120) + '...' : standard.scope}
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>
+              Not available from BIS
+            </span>
+          )}
+        </div>
+
+        {/* Test Measurements / Requirements */}
+        <div style={{
+          padding: '10px 12px',
+          background: '#F8FAFC',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: '6px',
+          fontSize: '12px'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            marginBottom: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}>
+            <span>Test Measurements & Methods</span>
+          </div>
+          {Array.isArray(standard.test_methods) && standard.test_methods.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {standard.test_methods.map((tm, i) => (
+                <span key={i} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-main)', fontWeight: 500 }}>
+                  {typeof tm === 'object' ? (tm.is_number || tm.title) : tm}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>
+              Not available from BIS
+            </span>
+          )}
         </div>
       </div>
 

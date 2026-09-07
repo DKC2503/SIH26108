@@ -3,7 +3,7 @@ import Header from './components/layout/Header';
 import Recommendations from './pages/Recommendations';
 import SystemStatusModal from './components/status/SystemStatusModal';
 import StandardsCompareModal from './components/compare/StandardsCompareModal';
-import { checkSystemHealth, analyzeRequirement } from './services/api';
+import { checkSystemHealth, analyzeRequirement, analyzeTenderDocument } from './services/api';
 
 export default function App() {
   const [systemStatus, setSystemStatus] = useState(null);
@@ -33,8 +33,11 @@ export default function App() {
     setSystemStatus(data);
   };
 
+  const [errorMessage, setErrorMessage] = useState(null);
+
   const handleAnalyze = async (query, inputType = 'product_description', enableBis = true) => {
     setIsLoading(true);
+    setErrorMessage(null);
     if (typeof query === 'string') {
       setSearchQuery(query);
     } else if (query?.name) {
@@ -42,11 +45,20 @@ export default function App() {
     }
     
     try {
-      const result = await analyzeRequirement(query, inputType, enableBis);
-      setAnalysisData(result);
+      if (query instanceof File || (query && typeof query === 'object' && query.name && inputType === 'tender_document')) {
+        const tenderRes = await analyzeTenderDocument(query);
+        const mergedData = {
+          ...(tenderRes.recommendation_data || {}),
+          tender_analysis: tenderRes.tender_analysis || null
+        };
+        setAnalysisData(mergedData);
+      } else {
+        const result = await analyzeRequirement(query, inputType, enableBis);
+        setAnalysisData(result);
+      }
     } catch (err) {
       console.error("Search execution error:", err);
-      alert(`Search failed: ${err.message}`);
+      setErrorMessage(err.message || "Failed to retrieve standards from BIS.");
     } finally {
       setIsLoading(false);
     }
@@ -56,6 +68,7 @@ export default function App() {
     setAnalysisData(null);
     setActiveStandard(null);
     setSearchQuery('');
+    setErrorMessage(null);
   };
 
   const handleHeaderUploadClick = () => {
@@ -124,6 +137,7 @@ export default function App() {
         <Recommendations
           analysisData={analysisData}
           isLoading={isLoading}
+          errorMessage={errorMessage}
           onAnalyze={handleAnalyze}
           onClear={handleClearAnalysis}
           activeStandard={activeStandard}
