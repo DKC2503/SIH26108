@@ -154,47 +154,44 @@ export default function Recommendations({
   }
 
   // ============================================================
-  // VIEW 2: HOMEPAGE (CLEAN GOOGLE / BING SEARCH ENGINE STYLE)
+  // VIEW 2: HOMEPAGE (CLEAN TECHNICAL SEARCH ENGINE STYLE)
   // ============================================================
   if (!analysisData) {
     return (
       <div style={{
-        minHeight: 'calc(100vh - 120px)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px 20px 60px 20px'
+        padding: '105px 20px 80px 20px',
+        width: '100%',
+        maxWidth: '840px',
+        margin: '0 auto'
       }}>
-        {/* Centered Brand Title with Official Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img 
-            src="/logo.png" 
-            alt="ISRA" 
-            style={{ 
-              width: '108px', 
-              height: 'auto', 
-              objectFit: 'contain', 
-              marginBottom: '16px' 
-            }} 
-          />
+        {/* Centered Brand Title (No duplicated logo in hero) */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{
-            fontSize: '40px',
+            fontSize: '44px',
             fontWeight: 800,
             letterSpacing: '-0.03em',
             color: 'var(--text-main)',
             lineHeight: 1,
-            marginBottom: '8px'
+            marginBottom: '10px'
           }}>
             ISRA
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          <p style={{ 
+            fontSize: '15.5px', 
+            color: 'var(--text-secondary)', 
+            fontWeight: 500, 
+            margin: 0,
+            letterSpacing: '-0.01em'
+          }}>
             Indian Standards Retrieval Architecture
           </p>
         </div>
 
-        {/* Dominant Search Input Box */}
-        <div style={{ width: '100%', maxWidth: '680px', marginBottom: '20px' }}>
+        {/* Dominant Search Input Box (Primary Visual Focal Point) */}
+        <div style={{ width: '100%', maxWidth: '680px', marginBottom: '24px' }}>
           <form onSubmit={handleSearchSubmit} className="search-bar-dominant">
             <Search size={20} color="var(--text-muted)" />
             <input
@@ -235,7 +232,7 @@ export default function Recommendations({
             background: '#EFF6FF',
             border: '1px solid #BFDBFE',
             borderRadius: '20px',
-            marginBottom: '20px',
+            marginBottom: '24px',
             fontSize: '13px',
             color: 'var(--primary-blue)'
           }}>
@@ -262,7 +259,7 @@ export default function Recommendations({
 
         {/* Minimal Add Document Action */}
         {!selectedFile && (
-          <div style={{ marginBottom: '28px' }}>
+          <div style={{ marginBottom: '40px' }}>
             <label style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -277,7 +274,7 @@ export default function Recommendations({
               transition: 'all 0.15s ease'
             }}>
               <Upload size={14} color="var(--primary-blue)" />
-              <span>+ Add tender or specification document (PDF, DOCX, TXT)</span>
+              <span>+ Add document</span>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -291,7 +288,7 @@ export default function Recommendations({
 
         {/* Canonical Suggestions Chips */}
         <div style={{ textAlign: 'center', maxWidth: '680px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '10px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
             Try searching for
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px' }}>

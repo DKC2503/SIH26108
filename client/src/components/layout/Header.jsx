@@ -59,18 +59,16 @@ export default function Header({
           src="/logo.png" 
           alt="ISRA" 
           style={{ 
-            width: '36px', 
-            height: 'auto', 
+            height: '36px', 
+            width: 'auto', 
             objectFit: 'contain' 
           }} 
         />
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
-              ISRA
-            </span>
+          <div style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.02em', color: 'var(--text-main)', lineHeight: 1.1 }}>
+            ISRA
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1 }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.2, marginTop: '2px' }}>
             Indian Standards Retrieval Architecture
           </div>
         </div>
@@ -111,7 +109,7 @@ export default function Header({
         </div>
       )}
 
-      {/* Right: Quick actions & Status */}
+      {/* Right: Quick actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {/* Add Document button */}
         <button
@@ -122,31 +120,6 @@ export default function Header({
         >
           <Upload size={14} color="var(--primary-blue)" />
           <span>+ Add document</span>
-        </button>
-
-        {/* System Health indicator pill */}
-        <button
-          onClick={onOpenStatusModal}
-          title="Click to check BIS connectivity & system status"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '16px',
-            background: '#F8FAFC',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
-            color: 'var(--text-secondary)'
-          }}
-        >
-          <span style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            background: isApiOnline ? (isBisAvailable ? '#059669' : '#D97706') : '#DC2626'
-          }} />
-          <span>{isApiOnline ? (isBisAvailable ? 'BIS Live Active' : 'Local Index Ready') : 'System Offline'}</span>
         </button>
       </div>
     </header>

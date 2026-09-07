@@ -168,12 +168,6 @@ export default function App() {
           >
             Official BIS Portal ↗
           </a>
-          <button
-            onClick={() => setIsStatusOpen(true)}
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            System Status
-          </button>
         </div>
       </footer>
 
